@@ -1,0 +1,18 @@
+# 忽略文件和目录
+node_modules/
+*.log
+*.deb
+cover.jpg
+create_roles.js
+digital_life_story.*
+google-chrome-stable_*.deb
+.openclaw/
+.clawhub/
+python-websearch-skill/
+open-webSearch/
+open_websearch/
+scripts/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
