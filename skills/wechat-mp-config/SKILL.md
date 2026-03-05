@@ -45,6 +45,18 @@ wenyan --help
 2. 添加你的服务器公网IP（可以用 `curl ifconfig.me` 查看）
 3. 保存配置
 
+### 3.1 白名单频繁变动时：改用 Relay 固定出口（推荐）
+
+当本机出口 IP 经常变化导致频繁 `invalid ip ... not in whitelist` 时，优先使用 relay 中转机发布。
+
+示例（在本机执行，一次完成上传+发布）：
+
+```bash
+ssh root@<relay-ip> "mkdir -p ~/gzh-publish && cat > ~/gzh-publish/article.md && cd ~/gzh-publish && WECHAT_APP_ID='<AppID>' WECHAT_APP_SECRET='<AppSecret>' wenyan publish -f article.md -t lapis -h solarized-light" < ./article.md
+```
+
+建议：将 relay 的固定公网 IP 加入公众号白名单，后续都走 relay，避免重复改白名单。
+
 ### 4. 设置环境变量
 
 在 ~/.bashrc 或 ~/.zshrc 中添加：
