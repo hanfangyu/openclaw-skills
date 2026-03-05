@@ -1,6 +1,6 @@
 ---
 name: wechat-mp-config
-description: "微信公众号发布配置模板。包含博纳影业AIGMS制作中心的公众号配置，快速配置OpenClaw的公众号发布功能。"
+description: "微信公众号发布配置模板。用于配置 OpenClaw 的公众号发布功能；在涉及公众号名称、AppID、AppSecret 时必须先与用户确认后再填写。"
 metadata:
   {
     "openclaw":
@@ -12,7 +12,7 @@ metadata:
 
 # 微信公众号发布配置
 
-这个skill提供了微信公众号发布功能的快速配置指南，包含博纳影业AIGMS制作中心的公众号配置示例。
+这个 skill 提供微信公众号发布功能的快速配置指南。执行配置前，先与用户确认公众号名称、AppID、AppSecret 以及发布目标账号。
 
 ## 快速开始
 
@@ -81,13 +81,17 @@ wenyan publish -f /path/to/article.md -t lapis -h solarized-light
 
 发布成功后，文章会自动推送到公众号草稿箱，到公众号后台审核后即可发布。
 
-## 博纳影业AIGMS制作中心配置
+## 账号确认与安全要求
 
-如果你需要配置**博纳影业AIGMS制作中心**的公众号，请使用以下配置：
+在配置前必须先与用户确认以下信息：
+
+- 公众号名称（用于确认发布目标）
+- AppID
+- AppSecret
 
 ```bash
-export WECHAT_APP_ID="wxe25dd0dc32cde8c7"
-export WECHAT_APP_SECRET="请从安全渠道获取"
+export WECHAT_APP_ID="<用户确认的 AppID>"
+export WECHAT_APP_SECRET="<用户确认的 AppSecret>"
 ```
 
 **⚠️ 安全提醒：** AppSecret 是敏感信息，请通过安全渠道（私信、加密消息等）获取，不要在公开渠道传输。

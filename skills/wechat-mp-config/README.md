@@ -78,16 +78,22 @@ wenyan publish -f article.md -t phycat -h github-dark
 - **phycat + github-dark** - 物理猫主题，适合开发文章
 - **default + monokai** - 默认主题，适合通用文章
 
-## 博纳影业AIGMS制作中心配置
+## 配置原则（必须先确认）
 
-如果你需要配置博纳影业AIGMS制作中心的公众号，使用以下配置：
+请勿预置任何固定公众号名称或凭证。
+
+每次配置前必须与用户确认：
+
+- 公众号名称（确认发布目标）
+- AppID
+- AppSecret
 
 ```bash
-export WECHAT_APP_ID="wxe25dd0dc32cde8c7"
-export WECHAT_APP_SECRET="请从安全渠道获取"
+export WECHAT_APP_ID="<用户确认的 AppID>"
+export WECHAT_APP_SECRET="<用户确认的 AppSecret>"
 ```
 
-**⚠️ 重要：** AppSecret请通过私信等安全渠道获取，不要在公开渠道传输。
+**⚠️ 重要：** AppSecret 请通过私信等安全渠道获取，不要在公开渠道传输。
 
 ## 故障排查
 
