@@ -261,17 +261,41 @@ def hello():
 
 当运行环境在内网、出口 IP 经常变化时，优先使用“中转机发布”流程，避免反复改公众号白名单。
 
+### 标准执行入口（OpenClaw）
+
+- 若工作区已提供 `publish-gzh.sh`，优先统一使用：
+
+```bash
+./publish-gzh.sh ./tmp/<article>.md
+```
+
+- 该脚本建议采用“单 SSH 会话上传+发布”，减少交互失败。
+
 ### 流程
 
 1. 准备一台出口相对稳定的发布中转机（可内网机或固定公网 IP 机器）
 2. 在中转机安装 Node/npm 与 `@wenyan-md/cli`
 3. 在中转机配置 `WECHAT_APP_ID` / `WECHAT_APP_SECRET`
-4. 由本地将 Markdown 同步到中转机，再在中转机执行 `wenyan publish`
+4. 用 SSH key 配置免密登录（推荐，避免多会话重复输密码）
+5. 由本地将 Markdown 同步到中转机，再在中转机执行 `wenyan publish`
 
 ### 参考命令（单 SSH 会话方式，减少交互问题）
 
 ```bash
 ssh root@<relay-ip> "mkdir -p ~/gzh-publish && cat > ~/gzh-publish/article.md && cd ~/gzh-publish && WECHAT_APP_ID='***' WECHAT_APP_SECRET='***' wenyan publish -f article.md -t lapis -h solarized-light" < ./article.md
+```
+
+### SSH 免密配置（推荐）
+
+```bash
+# 本机生成 key（如不存在）
+ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519
+
+# 把公钥拷到中转机
+ssh-copy-id -i ~/.ssh/id_ed25519.pub -p 22 root@<relay-ip>
+
+# 验证免密（应直接返回，不再提示 password）
+ssh -o BatchMode=yes -p 22 root@<relay-ip> 'echo key-login-ok'
 ```
 
 ### 实战注意事项
@@ -280,7 +304,9 @@ ssh root@<relay-ip> "mkdir -p ~/gzh-publish && cat > ~/gzh-publish/article.md &&
 - 若报 `wenyan: command not found`：中转机未安装 `@wenyan-md/cli`
 - 若报 `ERR_REQUIRE_ESM`（Node18 常见）：升级 Node 至 20+（建议 22 LTS）
 - 若报 `Host key verification failed`：先写入 `~/.ssh/known_hosts`
-- 若多次提示密码：使用 SSH key 认证或改为单 SSH 会话发布
+- 若报 `未能找到文章标题`：补齐 frontmatter 的 `title`
+- 若报 `未能找到文章封面`：补齐 frontmatter 的 `cover`
+- 若仍提示密码：重新执行 `ssh-copy-id` 或检查 `~/.ssh/authorized_keys` 权限
 
 ## 故障排查
 
