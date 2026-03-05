@@ -78,19 +78,21 @@ wenyan publish -f article.md -t phycat -h github-dark
 - **phycat + github-dark** - 物理猫主题，适合开发文章
 - **default + monokai** - 默认主题，适合通用文章
 
-## 配置原则（必须先确认）
+## 配置原则（首次确认，后续复用）
 
 请勿预置任何固定公众号名称或凭证。
 
-每次配置前必须与用户确认：
+首次安装/首次配置时与用户确认并保存：
 
 - 公众号名称（确认发布目标）
 - AppID
 - AppSecret
 
+后续默认复用已保存配置，仅在用户要求变更或鉴权失败时重新确认。
+
 ```bash
-export WECHAT_APP_ID="<用户确认的 AppID>"
-export WECHAT_APP_SECRET="<用户确认的 AppSecret>"
+export WECHAT_APP_ID="<首次确认并保存的 AppID>"
+export WECHAT_APP_SECRET="<首次确认并保存的 AppSecret>"
 ```
 
 **⚠️ 重要：** AppSecret 请通过私信等安全渠道获取，不要在公开渠道传输。

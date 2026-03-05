@@ -1,6 +1,6 @@
 ---
 name: wechat-mp-config
-description: "微信公众号发布配置模板。用于配置 OpenClaw 的公众号发布功能；在涉及公众号名称、AppID、AppSecret 时必须先与用户确认后再填写。"
+description: "微信公众号发布配置模板。用于配置 OpenClaw 的公众号发布功能；首次安装或首次配置时确认公众号名称、AppID、AppSecret，并将其记忆保存供后续复用。"
 metadata:
   {
     "openclaw":
@@ -12,7 +12,7 @@ metadata:
 
 # 微信公众号发布配置
 
-这个 skill 提供微信公众号发布功能的快速配置指南。执行配置前，先与用户确认公众号名称、AppID、AppSecret 以及发布目标账号。
+这个 skill 提供微信公众号发布功能的快速配置指南。首次安装或首次配置时先与用户确认公众号名称、AppID、AppSecret 以及发布目标账号；后续优先使用已记忆配置，仅在用户要求变更时再次确认。
 
 ## 快速开始
 
@@ -81,17 +81,23 @@ wenyan publish -f /path/to/article.md -t lapis -h solarized-light
 
 发布成功后，文章会自动推送到公众号草稿箱，到公众号后台审核后即可发布。
 
-## 账号确认与安全要求
+## 首次配置确认与记忆
 
-在配置前必须先与用户确认以下信息：
+首次安装或首次配置时，先与用户确认以下信息并写入记忆：
 
 - 公众号名称（用于确认发布目标）
 - AppID
 - AppSecret
 
+后续执行发布时，默认使用已记忆配置；仅在以下情况重新确认：
+
+- 用户明确要求更换公众号
+- 认证失败（如 invalid appid / secret）
+- 用户要求临时切换账号
+
 ```bash
-export WECHAT_APP_ID="<用户确认的 AppID>"
-export WECHAT_APP_SECRET="<用户确认的 AppSecret>"
+export WECHAT_APP_ID="<首次确认并保存的 AppID>"
+export WECHAT_APP_SECRET="<首次确认并保存的 AppSecret>"
 ```
 
 **⚠️ 安全提醒：** AppSecret 是敏感信息，请通过安全渠道（私信、加密消息等）获取，不要在公开渠道传输。
