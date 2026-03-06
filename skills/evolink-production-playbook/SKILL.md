@@ -11,6 +11,7 @@ description: 单技能一体化的 Discord 多机器人协作流程（抓总+编
 ## 模块索引（同一技能内）
 
 - 抓总调度：`references/producer-orchestrator.md`
+- 抓总状态机：`references/producer-state-machine.md`
 - 统一回传协议：`references/handoff-protocol.md`
 - 编剧模块：`references/writer-sop.md`
 - 导演模块：`references/director-sop.md`
