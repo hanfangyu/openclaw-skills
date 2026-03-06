@@ -1,0 +1,185 @@
+{
+  "normalized_input": {
+    "messages": [
+      {
+        "role": "user",
+        "text": "目标是优化机器人编排时的长会话问题"
+      },
+      {
+        "role": "assistant",
+        "text": "先做最小版，不改 OpenClaw 内核"
+      },
+      {
+        "role": "user",
+        "text": "保留最新 15 条，旧消息压缩"
+      },
+      {
+        "role": "assistant",
+        "text": "rolling summary 固定为 6 个字段"
+      },
+      {
+        "role": "user",
+        "text": "先外挂实现"
+      },
+      {
+        "role": "assistant",
+        "text": "先做 session-compactor skill"
+      },
+      {
+        "role": "user",
+        "text": "继续"
+      },
+      {
+        "role": "assistant",
+        "text": "增加 compact_session.py"
+      },
+      {
+        "role": "user",
+        "text": "还要更顺手"
+      },
+      {
+        "role": "assistant",
+        "text": "增加 build_compacted_context.py"
+      },
+      {
+        "role": "user",
+        "text": "再加 adapter"
+      },
+      {
+        "role": "assistant",
+        "text": "支持 messages/history/items/entries"
+      },
+      {
+        "role": "user",
+        "text": "要一键跑"
+      },
+      {
+        "role": "assistant",
+        "text": "增加 session_compact_pipeline.py"
+      },
+      {
+        "role": "user",
+        "text": "下一步是什么"
+      },
+      {
+        "role": "assistant",
+        "text": "补 demo 和使用示例"
+      },
+      {
+        "role": "user",
+        "text": "然后测试一下"
+      },
+      {
+        "role": "assistant",
+        "text": "现在开始跑样例测试"
+      },
+      {
+        "role": "user",
+        "text": "输出里重点看 agent_context_text"
+      },
+      {
+        "role": "assistant",
+        "text": "明白"
+      },
+      {
+        "role": "user",
+        "text": "继续"
+      },
+      {
+        "role": "assistant",
+        "text": "开始生成 compacted.json"
+      }
+    ],
+    "rolling_summary": {
+      "task": "",
+      "progress": "",
+      "done": [],
+      "blocked": [],
+      "constraints": [],
+      "next_step": ""
+    },
+    "keep_recent": 15,
+    "trigger_count": 20
+  },
+  "compacted": true,
+  "message_count": 22,
+  "keep_recent": 15,
+  "trigger_count": 20,
+  "rolling_summary": {
+    "task": "开始生成 compacted.json",
+    "progress": "最近推进：assistant: 明白 | user: 继续 | assistant: 开始生成 compacted.json",
+    "done": [],
+    "blocked": [
+      "user: 目标是优化机器人编排时的长会话问题"
+    ],
+    "constraints": [
+      "assistant: 先做最小版，不改 OpenClaw 内核",
+      "user: 先外挂实现",
+      "assistant: 先做 session-compactor skill"
+    ],
+    "next_step": "开始生成 compacted.json"
+  },
+  "recent_messages": [
+    {
+      "role": "assistant",
+      "text": "增加 compact_session.py"
+    },
+    {
+      "role": "user",
+      "text": "还要更顺手"
+    },
+    {
+      "role": "assistant",
+      "text": "增加 build_compacted_context.py"
+    },
+    {
+      "role": "user",
+      "text": "再加 adapter"
+    },
+    {
+      "role": "assistant",
+      "text": "支持 messages/history/items/entries"
+    },
+    {
+      "role": "user",
+      "text": "要一键跑"
+    },
+    {
+      "role": "assistant",
+      "text": "增加 session_compact_pipeline.py"
+    },
+    {
+      "role": "user",
+      "text": "下一步是什么"
+    },
+    {
+      "role": "assistant",
+      "text": "补 demo 和使用示例"
+    },
+    {
+      "role": "user",
+      "text": "然后测试一下"
+    },
+    {
+      "role": "assistant",
+      "text": "现在开始跑样例测试"
+    },
+    {
+      "role": "user",
+      "text": "输出里重点看 agent_context_text"
+    },
+    {
+      "role": "assistant",
+      "text": "明白"
+    },
+    {
+      "role": "user",
+      "text": "继续"
+    },
+    {
+      "role": "assistant",
+      "text": "开始生成 compacted.json"
+    }
+  ],
+  "agent_context_text": "Use this compacted session context to continue the task.\nRely on the rolling summary for prior state and on recent_messages for the latest local context.\nDo not assume missing history beyond what is captured below.\n\nRolling summary:\ntask: 开始生成 compacted.json\nprogress: 最近推进：assistant: 明白 | user: 继续 | assistant: 开始生成 compacted.json\ndone:\n  -\nblocked:\n  - user: 目标是优化机器人编排时的长会话问题\nconstraints:\n  - assistant: 先做最小版，不改 OpenClaw 内核\n  - user: 先外挂实现\n  - assistant: 先做 session-compactor skill\nnext_step: 开始生成 compacted.json\n\nRecent window: keep latest 15 raw messages"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "session-compactor",
+  "version": "0.1.0",
+  "description": "Minimal external session compaction for long conversations: keep latest 15 raw messages and one rolling task summary.",
+  "metadata": {
+    "os": ["darwin", "macos", "linux", "windows"]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "history": [
+    {"sender": "user", "body": "目标是优化机器人编排时的长会话问题"},
+    {"sender": "assistant", "content": "先做最小版，不改 OpenClaw 内核"},
+    {"sender": "user", "body": "保留最新 15 条，旧消息压缩"},
+    {"sender": "assistant", "content": "rolling summary 固定为 6 个字段"},
+    {"sender": "user", "body": "先外挂实现"},
+    {"sender": "assistant", "content": "先做 session-compactor skill"},
+    {"sender": "user", "body": "继续"},
+    {"sender": "assistant", "content": "增加 compact_session.py"},
+    {"sender": "user", "body": "还要更顺手"},
+    {"sender": "assistant", "content": "增加 build_compacted_context.py"},
+    {"sender": "user", "body": "再加 adapter"},
+    {"sender": "assistant", "content": "支持 messages/history/items/entries"},
+    {"sender": "user", "body": "要一键跑"},
+    {"sender": "assistant", "content": "增加 session_compact_pipeline.py"},
+    {"sender": "user", "body": "下一步是什么"},
+    {"sender": "assistant", "content": "补 demo 和使用示例"},
+    {"sender": "user", "body": "然后测试一下"},
+    {"sender": "assistant", "content": "现在开始跑样例测试"},
+    {"sender": "user", "body": "输出里重点看 agent_context_text"},
+    {"sender": "assistant", "content": "明白"},
+    {"sender": "user", "body": "继续"},
+    {"sender": "assistant", "content": "开始生成 compacted.json"}
+  ]
+}
