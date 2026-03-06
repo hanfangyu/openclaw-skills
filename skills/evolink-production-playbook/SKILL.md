@@ -33,7 +33,9 @@ description: 品牌营销视频单技能流程（抓总+编剧+导演+视效+剪
 
 ## 多 Agent 映射（固定约定）
 
-- producer(bot) -> producer/main agent
+在 Discord 指挥频道内，**每个 bot 就是其映射 agent 的执行体**；抓总（main/producer）负责派工与验收。
+
+- producer(bot) -> producer/main agent（主控调度）
 - writer(bot) -> writer agent
 - director(bot) -> director agent
 - vfx(bot) -> vfx agent
