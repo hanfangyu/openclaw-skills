@@ -98,6 +98,7 @@ def main() -> None:
 
     result = {
         "messages": messages,
+        "task_hint": payload.get("task_hint", "") if isinstance(payload, dict) else "",
         "rolling_summary": {
             "task": "",
             "progress": "",

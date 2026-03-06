@@ -18,6 +18,7 @@ def build_input(payload: Any, keep_recent: int, trigger_count: int) -> Dict[str,
             messages.append(adapted)
     return {
         "messages": messages,
+        "task_hint": payload.get("task_hint", "") if isinstance(payload, dict) else "",
         "rolling_summary": {
             "task": "",
             "progress": "",

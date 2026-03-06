@@ -162,6 +162,7 @@ Expected compacted-input JSON:
     {"role": "user", "text": "..."},
     {"role": "assistant", "text": "..."}
   ],
+  "task_hint": "可选：由上游显式提供的主任务标题",
   "rolling_summary": {
     "task": "",
     "progress": "",
@@ -174,6 +175,8 @@ Expected compacted-input JSON:
   "trigger_count": 20
 }
 ```
+
+If `task_hint` is present, use it as the preferred task title instead of guessing only from messages.
 
 `compact_session.py` returns:
 
