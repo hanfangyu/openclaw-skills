@@ -1,6 +1,6 @@
 ---
 name: evolink-production-playbook
-description: 单技能一体化的 Discord 多机器人协作流程（抓总+编剧+导演+视效+剪辑）与 Evolink 图/视/音编排规范。用于 OpenClaw 多 agent 映射、单线程派工、回传验收门禁、分段生成与失败降级。
+description: 品牌营销视频单技能流程（抓总+编剧+导演+视效+剪辑）与 Evolink 图/视/音编排规范。用于 OpenClaw 多 agent 映射、单线程派工、品牌DNA故事化创作、回传验收门禁、分段生成与失败降级。
 ---
 
 # Evolink Production Playbook (Single-Skill)

@@ -1,7 +1,7 @@
 project:
-  name: brand_promo_30s
+  name: brand_marketing_video_30s
   version: v1
-  objective: "30秒科技感品牌曝光"
+  objective: "30秒品牌营销视频"
   priority: speed-first   # speed-first | quality-first | cost-first
   outputs:
     - video_30s_16x9_1080p
