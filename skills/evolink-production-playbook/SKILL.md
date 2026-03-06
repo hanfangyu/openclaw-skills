@@ -12,6 +12,7 @@ description: 品牌营销视频单技能流程（抓总+编剧+导演+视效+剪
 
 - 抓总调度：`references/producer-orchestrator.md`
 - 抓总状态机：`references/producer-state-machine.md`
+- REAL交付门禁：`references/real-delivery-gate.md`
 - 统一回传协议：`references/handoff-protocol.md`
 - 编剧模块：`references/writer-sop.md`
 - 导演模块：`references/director-sop.md`
