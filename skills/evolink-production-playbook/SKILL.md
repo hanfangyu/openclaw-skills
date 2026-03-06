@@ -36,10 +36,23 @@ description: 单技能一体化的 Discord 多机器人协作流程（抓总+编
 - vfx(bot) -> vfx agent
 - editor(bot) -> editor agent
 
-## Evolink 当前优先模型（可覆盖）
+## 模型预设切换（固定两套）
 
-- 图像：`doubao-seedream-4.5`
-- 视频：`doubao-seedance-1.0-pro-fast`
-- 音乐：`suno-v4.5`
+在 `references/production-template.yaml` 里维护两套预设：
 
-如项目要求变化，只改 `production-template.yaml` 的 `model_registry`。
+1. `default_last_verified`（默认高质量）
+   - 图像：`doubao-seedream-4.5`
+   - 视频：`doubao-seedance-1.0-pro-fast`
+   - 音乐：`suno-v4.5`
+
+2. `low_cost_test`（低成本流程测试）
+   - 图像：`z-image-turbo`
+   - 视频：`doubao-seedance-1.0-pro-fast`
+   - 音乐：`suno-v4`
+
+## 切换口令约定
+
+- 用户说“走上次默认模型” -> 使用 `default_last_verified`
+- 用户说“便宜模型跑流程测试” -> 使用 `low_cost_test`
+
+如项目要求变化，只改 `production-template.yaml` 的 `model_presets` / `model_registry`。

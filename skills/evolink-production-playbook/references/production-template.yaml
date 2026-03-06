@@ -20,6 +20,18 @@ global_constraints:
   language: "zh-CN"
   subtitle_required: true
 
+model_presets:
+  default_last_verified:
+    description: "默认高质量执行（上次验证可用）"
+    image: "doubao-seedream-4.5"
+    video: "doubao-seedance-1.0-pro-fast"
+    music: "suno-v4.5"
+  low_cost_test:
+    description: "低成本流程压测"
+    image: "z-image-turbo"
+    video: "doubao-seedance-1.0-pro-fast"
+    music: "suno-v4"
+
 model_registry:
   image:
     primary: "doubao-seedream-4.5"
