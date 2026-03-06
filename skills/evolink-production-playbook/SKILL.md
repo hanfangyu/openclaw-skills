@@ -18,6 +18,7 @@ description: 单技能一体化的 Discord 多机器人协作流程（抓总+编
 - 视效模块（Evolink）：`references/vfx-sop.md`
 - 剪辑模块：`references/editor-sop.md`
 - 全局编排模板：`references/production-template.yaml`
+- 能力驱动提示词：`references/model-prompting-guide.md`
 
 ## 使用顺序
 
