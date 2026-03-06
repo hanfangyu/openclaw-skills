@@ -2,6 +2,12 @@
 
 本指南要求：提示词与参数必须基于模型能力文档，不做超能力请求。
 
+新增硬规则：先品牌、后提示词。
+- 先做品牌DNA提炼（关键词、禁忌词、视觉语法、叙事语气）
+- 先写品牌故事母题与三幕结构
+- 再把三幕映射为分段提示词
+- 禁止直接复用“通用科技模板”覆盖品牌个性
+
 参考来源（本地）：
 - `../../evolink-video/references/video-api-params.md`
 - `../../evolink-image/references/image-api-params.md`
