@@ -1,0 +1,11 @@
+{
+  "max_retries": 2,
+  "base_backoff_sec": 30,
+  "max_backoff_sec": 300,
+  "retryable_categories": ["network"],
+  "classifier": {
+    "network": ["timeout", "timed out", "connection", "network", "econn", "reset", "dns", "429", "rate limit", "temporar"],
+    "permission": ["permission", "forbidden", "403", "unauthorized", "not allowed", "missing access"],
+    "parameter": ["invalid", "bad request", "400", "missing field", "malformed", "schema", "payload"]
+  }
+}

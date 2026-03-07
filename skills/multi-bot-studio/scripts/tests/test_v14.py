@@ -106,6 +106,26 @@ def test_replay_summary():
     assert '"summary"' in out
 
 
+def test_retry_requeue_and_stats():
+    run_id = "test-v14-007"
+    run(["python", str(CLI), "start", "--workflow", "collaboration", "--run-id", run_id])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"e1","type":"role_ack","role":"writer","ts":1700000000}, ensure_ascii=False)])
+    run(["python", str(CLI), "emit", "--run-id", run_id, "--mode", "queue"])
+    out_export = run(["python", str(CLI), "dispatch", "--run-id", run_id, "--mode", "export"])
+    payloads = json.loads(out_export).get("payloads", [])
+    did = payloads[0]["dispatch_id"]
+
+    # write failed receipt (network) -> should go dead letter
+    bad = json.dumps([{"dispatch_id": did, "ok": False, "error": "network timeout"}], ensure_ascii=False)
+    run(["python", str(CLI), "receipts", "--run-id", run_id, "--receipts-json", bad])
+
+    stats = run(["python", str(CLI), "failure-stats", "--run-id", run_id])
+    assert '"network"' in stats
+
+    rq = run(["python", str(CLI), "requeue-dead", "--run-id", run_id, "--limit", "5"])
+    assert '"ok": true' in rq
+
+
 def test_dedup():
     run_id = "test-v14-002"
     run(["python", str(CLI), "start", "--workflow", "collaboration", "--run-id", run_id])
@@ -121,5 +141,6 @@ if __name__ == "__main__":
     test_dispatch_worker_dedup()
     test_receipts_apply()
     test_replay_summary()
+    test_retry_requeue_and_stats()
     test_dedup()
     print("OK")

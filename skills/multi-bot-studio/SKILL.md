@@ -19,6 +19,7 @@ This skill is script-first.
 - `scripts/runner/send_once.py` — reference runner (export -> send(simulated) -> receipts)
 - `references/schemas/*.json` — event/state/action/workflow contracts
 - `references/policies/defaults.json` — timeout/delivery/messaging defaults
+- `references/policies/retry.json` — retry policy (max retries/backoff/retryable categories)
 - `references/policies/task-cards.json` — dispatch card templates by workflow/role
 - `references/policies/roles.json` — role mention mapping by workflow
 - `references/regressions/sample-discord-inbound.jsonl` — replay sample

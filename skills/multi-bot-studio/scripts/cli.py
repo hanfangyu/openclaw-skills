@@ -13,6 +13,7 @@ from core.replay import replay_events
 from core.fallback import apply_fallback_approval
 from adapters.discord_adapter import to_outbound_messages
 from core.sender import emit_outbound, dispatch_outbound, dispatch_worker, apply_receipts
+from core.retry import deadletter_requeue, failure_stats
 from ingest.discord_to_event import message_to_event
 
 
@@ -208,6 +209,18 @@ def cmd_receipts(base: Path, run_id: str, receipts_json: str):
     print(json.dumps(result, ensure_ascii=False))
 
 
+def cmd_requeue_dead(base: Path, run_id: str, limit: int):
+    rd = ensure_run(base, run_id)
+    result = deadletter_requeue(rd, base, limit=limit)
+    print(json.dumps(result, ensure_ascii=False))
+
+
+def cmd_failure_stats(base: Path, run_id: str):
+    rd = ensure_run(base, run_id)
+    result = failure_stats(rd, base)
+    print(json.dumps({"ok": True, **result}, ensure_ascii=False))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-dir", default=str(Path(__file__).resolve().parents[1]))
@@ -250,6 +263,13 @@ def main():
     sp.add_argument("--run-id", required=True)
     sp.add_argument("--receipts-json", required=True)
 
+    sp = sub.add_parser("requeue-dead")
+    sp.add_argument("--run-id", required=True)
+    sp.add_argument("--limit", type=int, default=20)
+
+    sp = sub.add_parser("failure-stats")
+    sp.add_argument("--run-id", required=True)
+
     args = ap.parse_args()
     base = Path(args.base_dir)
 
@@ -271,6 +291,10 @@ def main():
         cmd_dispatch(base, args.run_id, args.mode, args.limit)
     elif args.cmd == "receipts":
         cmd_receipts(base, args.run_id, args.receipts_json)
+    elif args.cmd == "requeue-dead":
+        cmd_requeue_dead(base, args.run_id, args.limit)
+    elif args.cmd == "failure-stats":
+        cmd_failure_stats(base, args.run_id)
 
 
 if __name__ == "__main__":

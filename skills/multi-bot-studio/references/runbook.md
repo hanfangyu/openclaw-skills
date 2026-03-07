@@ -24,6 +24,10 @@
 - Apply send receipts:
   - `uv run python skills/multi-bot-studio/scripts/cli.py receipts --run-id <id> --receipts-json '[{"dispatch_id":"...","ok":true}]'`
   - failed receipts are also mirrored to `runs/<id>/dead_letter.jsonl`
+- Requeue retryable dead letters:
+  - `uv run python skills/multi-bot-studio/scripts/cli.py requeue-dead --run-id <id> --limit 20`
+- Failure category stats:
+  - `uv run python skills/multi-bot-studio/scripts/cli.py failure-stats --run-id <id>`
 
 ## Event Examples
 
