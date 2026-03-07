@@ -1,13 +1,13 @@
 project:
-  name: brand_marketing_video_30s
+  name: brand_marketing_video_variable_duration
   version: v1
-  objective: "30秒品牌营销视频"
+  objective: "按用户要求时长的品牌营销视频"
   priority: speed-first   # speed-first | quality-first | cost-first
   outputs:
-    - video_30s_16x9_1080p
-    - video_15s_16x9_1080p
+    - video_main_user_duration_16x9_1080p
+    - video_cutdown_optional_16x9_1080p
     - poster_keyframe
-    - bgm_30s
+    - bgm_user_duration
   brand:
     name: "【品牌名】"
     must_show_times: 2
@@ -58,14 +58,15 @@ pipeline:
     owner: director
     model: "video.primary"
     segmentation:
-      target_duration_sec: 30
+      target_duration_sec: "from_user_requirement"
+      segment_plan_source: "writer_director_negotiated"
+      rhythm_required: true
       segments:
-        - { id: s01, range: "0-5", goal: "hook" }
-        - { id: s02, range: "5-10", goal: "core_value" }
-        - { id: s03, range: "10-15", goal: "workflow" }
-        - { id: s04, range: "15-20", goal: "control_trust" }
-        - { id: s05, range: "20-25", goal: "industry_montage" }
-        - { id: s06, range: "25-30", goal: "logo_lock" }
+        - { id: s01, range: "example:0-4", goal: "hook" }
+        - { id: s02, range: "example:4-9", goal: "core_value" }
+        - { id: s03, range: "example:9-15", goal: "workflow" }
+        - { id: s04, range: "example:15-22", goal: "proof_trust" }
+        - { id: s05, range: "example:22-end", goal: "logo_lock" }
       overlap_sec: 0.4
       continuity_anchor: ["same_main_subject", "same_color_palette", "same_hud_motif"]
     failure_policy:
@@ -78,12 +79,12 @@ pipeline:
     params:
       custom_mode: false
       instrumental: true
-      duration_sec: 30
+      duration_sec: "from_user_requirement"
 
   - step: edit_and_compose
     owner: editor
     timeline_rules:
-      beat_points: ["0.0","3.0","7.0","10.0","14.0","19.0","24.0","28.5","30.0"]
+      beat_points: "from_writer_director_segment_plan"
       subtitle_min_hold_sec: 1.2
     export:
       master:
