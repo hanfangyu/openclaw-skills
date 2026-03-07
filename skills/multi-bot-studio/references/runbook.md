@@ -42,6 +42,9 @@
 ```bash
 # Export + simulate send + write receipts
 uv run python skills/multi-bot-studio/scripts/runner/send_once.py --run-id <id> --dry-send --apply-receipts
+
+# One-command quick demo
+bash skills/multi-bot-studio/scripts/runner/demo.sh demo-quick-001
 ```
 
 Notes:
