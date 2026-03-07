@@ -28,13 +28,16 @@ def message_to_event(message: Dict) -> Dict:
         "media_count": int(message.get("media_count") or 0),
     }
 
-    if "ACK + 在线" in text and role:
+    if role and ("ACK + 在线" in text or "【状态】已收到" in text or "状态】已收到" in text):
         event["type"] = "role_ack"
     elif role:
         event["type"] = "role_update"
         if "已完成" in text:
             event["status"] = "已完成"
-        elif "执行中" in text or "进行中" in text:
+            # 文案/导演/视效的主要交付为文本，标记为可验收交付。
+            if role in ("writer", "director", "vfx"):
+                event["has_delivery"] = True
+        elif "执行中" in text or "进行中" in text or "审核中" in text:
             event["status"] = "执行中"
         else:
             event["status"] = "更新"

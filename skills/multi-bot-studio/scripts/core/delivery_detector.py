@@ -23,6 +23,10 @@ def detect_delivery(event: Dict) -> bool:
 
 def normalize_event(event: Dict) -> Dict:
     out = dict(event)
-    if out.get("type") == "role_update" and out.get("role") == "editor":
-        out["has_delivery"] = detect_delivery(out)
+    if out.get("type") == "role_update":
+        role = out.get("role")
+        if role == "editor":
+            out["has_delivery"] = detect_delivery(out)
+        elif role in ("writer", "director", "vfx") and out.get("status") == "已完成":
+            out["has_delivery"] = True
     return out
