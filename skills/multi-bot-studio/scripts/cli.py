@@ -24,8 +24,18 @@ def _policy_path(base: Path) -> Path:
     return base / "references" / "policies" / "defaults.json"
 
 
+def _task_card_policy_path(base: Path) -> Path:
+    return base / "references" / "policies" / "task-cards.json"
+
+
 def _load_workflow(base: Path, workflow: str) -> dict:
-    return json.loads(_workflow_path(base, workflow).read_text())
+    wf = json.loads(_workflow_path(base, workflow).read_text())
+    tc = _task_card_policy_path(base)
+    if tc.exists():
+        mapping = json.loads(tc.read_text())
+        if isinstance(mapping, dict):
+            wf["dispatch_templates"] = mapping.get(workflow, {})
+    return wf
 
 
 def _load_policy(base: Path) -> dict:
