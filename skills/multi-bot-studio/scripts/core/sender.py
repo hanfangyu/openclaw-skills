@@ -94,6 +94,18 @@ def dispatch_worker(run_dir: Path, mode: str = "dry_run", limit: int = 20) -> Di
     if mode == "dry_run":
         return {"ok": True, "mode": mode, "count": len(pending), "items": pending}
 
+    if mode == "export":
+        payloads = []
+        for row in pending:
+            payloads.append({
+                "dispatch_id": row["dispatch_id"],
+                "action": "send",
+                "channel": row.get("channel", "discord"),
+                "target": row.get("target"),
+                "message": row.get("message", ""),
+            })
+        return {"ok": True, "mode": mode, "count": len(payloads), "payloads": payloads}
+
     if mode == "commit":
         now = int(time.time())
         with sent_path.open("a", encoding="utf-8") as f:

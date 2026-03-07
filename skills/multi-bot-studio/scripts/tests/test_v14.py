@@ -70,6 +70,9 @@ def test_dispatch_worker_dedup():
     run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"e1","type":"role_ack","role":"writer","ts":1700000000}, ensure_ascii=False)])
     run(["python", str(CLI), "emit", "--run-id", run_id, "--mode", "queue"])
 
+    out_export = run(["python", str(CLI), "dispatch", "--run-id", run_id, "--mode", "export"])
+    assert '"mode": "export"' in out_export
+
     out1 = run(["python", str(CLI), "dispatch", "--run-id", run_id, "--mode", "commit"])
     out2 = run(["python", str(CLI), "dispatch", "--run-id", run_id, "--mode", "commit"])
     # second commit should find nothing new due to sent-id dedup

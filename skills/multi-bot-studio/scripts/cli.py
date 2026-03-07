@@ -212,7 +212,7 @@ def main():
 
     sp = sub.add_parser("dispatch")
     sp.add_argument("--run-id", required=True)
-    sp.add_argument("--mode", choices=["dry_run", "commit"], default="dry_run")
+    sp.add_argument("--mode", choices=["dry_run", "export", "commit"], default="dry_run")
     sp.add_argument("--limit", type=int, default=20)
 
     args = ap.parse_args()

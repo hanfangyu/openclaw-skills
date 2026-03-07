@@ -17,8 +17,9 @@
 - Emit outbound (dry-run or queue):
   - `uv run python skills/multi-bot-studio/scripts/cli.py emit --run-id <id> --mode dry_run`
   - `uv run python skills/multi-bot-studio/scripts/cli.py emit --run-id <id> --mode queue`
-- Dispatch worker (dry-run or commit):
+- Dispatch worker (dry-run / export / commit):
   - `uv run python skills/multi-bot-studio/scripts/cli.py dispatch --run-id <id> --mode dry_run`
+  - `uv run python skills/multi-bot-studio/scripts/cli.py dispatch --run-id <id> --mode export`
   - `uv run python skills/multi-bot-studio/scripts/cli.py dispatch --run-id <id> --mode commit`
 
 ## Event Examples
