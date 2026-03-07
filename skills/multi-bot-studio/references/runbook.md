@@ -4,6 +4,9 @@
 
 - Start run:
   - `uv run python skills/multi-bot-studio/scripts/cli.py start --workflow <name> --run-id <id>`
+  - 指定路由到当前频道（推荐）：
+    - `uv run python skills/multi-bot-studio/scripts/cli.py start --workflow <name> --run-id <id> --route-channel discord --route-target <channel_id>`
+  - 也可用环境变量覆盖默认路由：`MBS_DEFAULT_CHANNEL` / `MBS_DEFAULT_TARGET`
 - Apply event:
   - `uv run python skills/multi-bot-studio/scripts/cli.py step --run-id <id> --event-json '<json>'`
 - Show state:

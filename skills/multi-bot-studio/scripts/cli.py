@@ -2,6 +2,7 @@
 from __future__ import annotations
 import argparse
 import json
+import os
 from pathlib import Path
 
 from core.storage import ensure_run, load_json, save_json, append_event
@@ -54,14 +55,30 @@ def _load_workflow(base: Path, workflow: str) -> dict:
 def _load_policy(base: Path) -> dict:
     p = _policy_path(base)
     if not p.exists():
-        return {}
-    return json.loads(p.read_text())
+        policy = {}
+    else:
+        policy = json.loads(p.read_text())
+
+    # Allow runtime override without editing committed policy file.
+    messaging = dict(policy.get("messaging", {}))
+    env_channel = os.environ.get("MBS_DEFAULT_CHANNEL")
+    env_target = os.environ.get("MBS_DEFAULT_TARGET")
+    if env_channel:
+        messaging["default_channel"] = env_channel
+    if env_target:
+        messaging["default_target"] = env_target
+    if messaging:
+        policy["messaging"] = messaging
+    return policy
 
 
-def _with_default_target(outbound: list[dict], policy: dict) -> list[dict]:
+def _with_default_target(outbound: list[dict], policy: dict, run_state: dict | None = None) -> list[dict]:
     messaging = policy.get("messaging", {})
-    channel = messaging.get("default_channel", "discord")
-    target = messaging.get("default_target")
+    run_routing = (run_state or {}).get("routing", {})
+
+    channel = run_routing.get("channel") or messaging.get("default_channel", "discord")
+    target = run_routing.get("target") or messaging.get("default_target")
+
     fixed = []
     for m in outbound:
         x = dict(m)
@@ -72,9 +89,15 @@ def _with_default_target(outbound: list[dict], policy: dict) -> list[dict]:
     return fixed
 
 
-def cmd_start(base: Path, workflow: str, run_id: str):
+def cmd_start(base: Path, workflow: str, run_id: str, route_channel: str | None = None, route_target: str | None = None):
     wf = _load_workflow(base, workflow)
     rd = ensure_run(base, run_id)
+    routing = {}
+    if route_channel:
+        routing["channel"] = route_channel
+    if route_target:
+        routing["target"] = route_target
+
     state = {
         "run_id": run_id,
         "workflow": workflow,
@@ -87,13 +110,14 @@ def cmd_start(base: Path, workflow: str, run_id: str):
             "four_questions_passed": False,
             "duration_mapping_passed": not wf.get("gates", {}).get("require_duration_mapping", False)
         },
+        "routing": routing,
         "processed_event_ids": [],
         "history": []
     }
     save_json(rd / "state.json", state)
     (rd / "events.jsonl").touch(exist_ok=True)
     (rd / "outbound.jsonl").touch(exist_ok=True)
-    print(json.dumps({"ok": True, "run_id": run_id, "status": state["status"]}, ensure_ascii=False))
+    print(json.dumps({"ok": True, "run_id": run_id, "status": state["status"], "routing": routing}, ensure_ascii=False))
 
 
 def _apply(base: Path, run_id: str, raw_event: dict):
@@ -119,7 +143,7 @@ def _apply(base: Path, run_id: str, raw_event: dict):
 
     rendered = render_actions(actions, wf)
     outbound = to_outbound_messages(run_id, rendered)
-    outbound = _with_default_target(outbound, policy)
+    outbound = _with_default_target(outbound, policy, state)
     emit_outbound(rd, outbound)
     result = {"ok": True, "state": state["status"], "actions": actions, "rendered": rendered, "outbound": outbound}
     print(json.dumps(result, ensure_ascii=False))
@@ -157,7 +181,7 @@ def cmd_approve(base: Path, run_id: str, action: str, approved: bool):
     save_json(rd / "state.json", state)
     rendered = render_actions(actions, wf)
     outbound = to_outbound_messages(run_id, rendered)
-    outbound = _with_default_target(outbound, policy)
+    outbound = _with_default_target(outbound, policy, state)
     emit_outbound(rd, outbound)
     print(json.dumps({"ok": True, "state": state["status"], "actions": actions, "rendered": rendered, "outbound": outbound}, ensure_ascii=False))
 
@@ -229,6 +253,8 @@ def main():
     sp = sub.add_parser("start")
     sp.add_argument("--workflow", required=True, choices=["collaboration", "marketing_video"])
     sp.add_argument("--run-id", required=True)
+    sp.add_argument("--route-channel", required=False)
+    sp.add_argument("--route-target", required=False)
 
     sp = sub.add_parser("step")
     sp.add_argument("--run-id", required=True)
@@ -274,7 +300,7 @@ def main():
     base = Path(args.base_dir)
 
     if args.cmd == "start":
-        cmd_start(base, args.workflow, args.run_id)
+        cmd_start(base, args.workflow, args.run_id, args.route_channel, args.route_target)
     elif args.cmd == "step":
         cmd_step(base, args.run_id, args.event_json)
     elif args.cmd == "ingest-discord":
