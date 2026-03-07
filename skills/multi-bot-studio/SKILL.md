@@ -16,6 +16,7 @@ This skill is script-first.
 - `scripts/workflows/marketing_video/workflow.json` — marketing video pipeline spec
 - `scripts/ingest/discord_to_event.py` — Discord inbound to canonical events
 - `scripts/adapters/discord_adapter.py` — canonical actions to outbound message payloads
+- `scripts/runner/send_once.py` — reference runner (export -> send(simulated) -> receipts)
 - `references/schemas/*.json` — event/state/action/workflow contracts
 - `references/policies/defaults.json` — timeout/delivery/messaging defaults
 - `references/regressions/sample-discord-inbound.jsonl` — replay sample

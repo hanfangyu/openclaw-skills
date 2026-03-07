@@ -37,6 +37,17 @@
 - Fallback is only allowed when orchestrator enters `FALLBACK_ALLOWED`.
 - `outbound.jsonl` is generated on every step/ingest/approve call for sender integration.
 
+## Runner (Reference)
+
+```bash
+# Export + simulate send + write receipts
+uv run python skills/multi-bot-studio/scripts/runner/send_once.py --run-id <id> --dry-send --apply-receipts
+```
+
+Notes:
+- `send_once.py` is a safe reference runner.
+- Real `message.send` invocation is intentionally left to the OpenClaw tool layer/invoker.
+
 ## Regression Test
 
 ```bash
