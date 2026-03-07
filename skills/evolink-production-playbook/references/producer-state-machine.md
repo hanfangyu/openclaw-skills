@@ -16,7 +16,7 @@
 
 ## 转移规则
 
-1. `IDLE -> ACK_WAIT`：用户确认执行标准工作流
+1. `IDLE -> ACK_WAIT`：用户确认执行标准工作流（确认前禁止 @ 执行机器人）
 2. `ACK_WAIT -> PLANNING`：全员 ACK 完成
 3. `PLANNING -> DISPATCHING`：发布总计划+第1棒任务卡
 4. `DISPATCHING -> REVIEWING`：收到标准回传（必须@抓总）
