@@ -14,6 +14,9 @@
   - `uv run python skills/multi-bot-studio/scripts/cli.py replay --run-id <id>`
 - Ingest Discord message:
   - `uv run python skills/multi-bot-studio/scripts/cli.py ingest-discord --run-id <id> --message-json '<json>'`
+- Emit outbound (dry-run or queue):
+  - `uv run python skills/multi-bot-studio/scripts/cli.py emit --run-id <id> --mode dry_run`
+  - `uv run python skills/multi-bot-studio/scripts/cli.py emit --run-id <id> --mode queue`
 
 ## Event Examples
 

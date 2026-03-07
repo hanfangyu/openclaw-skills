@@ -51,6 +51,19 @@ def test_happy_path_and_gates():
     assert "editor" in out_retry
 
 
+def test_emit_queue_and_dryrun():
+    run_id = "test-v14-003"
+    run(["python", str(CLI), "start", "--workflow", "collaboration", "--run-id", run_id])
+    # produce one outbound
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"e1","type":"role_ack","role":"writer","ts":1700000000}, ensure_ascii=False)])
+
+    out_dry = run(["python", str(CLI), "emit", "--run-id", run_id, "--mode", "dry_run"])
+    assert '"mode": "dry_run"' in out_dry
+
+    out_queue = run(["python", str(CLI), "emit", "--run-id", run_id, "--mode", "queue"])
+    assert '"mode": "queue"' in out_queue
+
+
 def test_dedup():
     run_id = "test-v14-002"
     run(["python", str(CLI), "start", "--workflow", "collaboration", "--run-id", run_id])
@@ -62,5 +75,6 @@ def test_dedup():
 
 if __name__ == "__main__":
     test_happy_path_and_gates()
+    test_emit_queue_and_dryrun()
     test_dedup()
     print("OK")

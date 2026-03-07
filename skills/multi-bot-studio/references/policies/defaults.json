@@ -10,6 +10,9 @@
   },
   "messaging": {
     "emit_mode": "dry_run",
-    "silent_on_dedup": true
+    "dispatch_mode": "dry_run",
+    "silent_on_dedup": true,
+    "default_channel": "discord",
+    "default_target": "1479871398909313145"
   }
 }
