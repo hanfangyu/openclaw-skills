@@ -5,7 +5,7 @@
 ## 状态定义
 
 - `IDLE`：待命
-- `ACK_WAIT`：已确认走工作流，等待全员在线 ACK
+- `ACK_WAIT`：已确认走工作流，等待全员在线 ACK（ACK 回执需 @抓总）
 - `PLANNING`：已接单，正在输出总计划
 - `DISPATCHING`：已派当前棒次，等待岗位交付
 - `REVIEWING`：收到交付，验收中
