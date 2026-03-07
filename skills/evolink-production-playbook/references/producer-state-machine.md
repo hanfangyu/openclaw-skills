@@ -5,8 +5,9 @@
 ## 状态定义
 
 - `IDLE`：待命
-- `ACK_WAIT`：已确认走工作流，等待全员在线 ACK（ACK 回执需 @抓总）
-- `PLANNING`：已接单，完成四问锁参与总计划
+- `CONFIRMED`：用户已确认采用标准工作流（确认后才能进入四问）
+- `PLANNING`：四问锁参与总计划
+- `ACK_WAIT`：四问完成后，等待全员在线 ACK（ACK 回执需 @抓总）
 - `DISPATCHING`：已派当前棒次，等待岗位交付
 - `REVIEWING`：收到交付，验收中
 - `REVISING`：已打回，等待同岗位修订
@@ -16,16 +17,17 @@
 
 ## 转移规则
 
-1. `IDLE -> PLANNING`：用户确认执行标准工作流并完成四问锁参（确认前禁止 @ 执行机器人）
-2. `PLANNING -> ACK_WAIT`：抓总发起全员 ACK 点名
-3. `ACK_WAIT -> DISPATCHING`：全员 ACK 完成并发布第1棒任务卡
-4. `DISPATCHING -> REVIEWING`：收到标准回传（必须@抓总）
-5. `REVIEWING -> ADVANCING`：验收通过
-6. `REVIEWING -> REVISING`：打回修改
-7. `REVISING -> REVIEWING`：同岗位提交新版本
-8. `ADVANCING -> DISPATCHING`：发布下一棒任务卡
-9. `ADVANCING -> DONE`：最后一棒通过
-10. 任意状态 -> `BLOCKED`：连续2次打回仍不通过或输入冲突
+1. `IDLE -> CONFIRMED`：用户确认执行标准工作流（确认前禁止 @ 执行机器人）
+2. `CONFIRMED -> PLANNING`：抓总完成四问锁参
+3. `PLANNING -> ACK_WAIT`：抓总发起全员 ACK 点名
+4. `ACK_WAIT -> DISPATCHING`：全员 ACK 完成并发布第1棒任务卡
+5. `DISPATCHING -> REVIEWING`：收到标准回传（必须@抓总）
+6. `REVIEWING -> ADVANCING`：验收通过
+7. `REVIEWING -> REVISING`：打回修改
+8. `REVISING -> REVIEWING`：同岗位提交新版本
+9. `ADVANCING -> DISPATCHING`：发布下一棒任务卡
+10. `ADVANCING -> DONE`：最后一棒通过
+11. 任意状态 -> `BLOCKED`：连续2次打回仍不通过或输入冲突
 
 ## 门禁条件
 
@@ -44,7 +46,8 @@
 - 视效棒状态文本只允许“审核中/已完成/阻塞”；出现“生成中/已生成”按角色越界处理并要求重发。
 - 若时长参数映射校验未通过（分段时长与API参数不一致或总和≠目标时长），禁止进入抓总生成阶段。
 - BLOCKED 解除后默认从最近已验收完成棒次的下一棒恢复，除非用户明确要求重跑。
-- 未拿到剪辑输出（30s主版URL + 15s切片URL）时，禁止宣布“REAL流程完成”。
+- 未拿到剪辑输出（审片附件 + 30s主版可播放链接）时，禁止宣布“REAL流程完成”。
+- 若剪辑在收到完整输入包后持续仅“审核中/进行中”且无实物交付（附件或链接），抓总可触发兜底合成流程并继续验收收口。
 
 ## 最小状态记录模板
 
