@@ -1,0 +1,15 @@
+{
+  "timeouts": {
+    "ack_wait_sec": 180,
+    "editor_w1_sec": 120,
+    "editor_w2_sec": 180
+  },
+  "delivery": {
+    "trusted_hosts": ["files.evolink.ai", "media.evolink.ai", "cdn.discordapp.com"],
+    "video_extensions": ["mp4", "mov", "m4v", "webm"]
+  },
+  "messaging": {
+    "emit_mode": "dry_run",
+    "silent_on_dedup": true
+  }
+}

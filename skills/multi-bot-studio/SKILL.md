@@ -9,12 +9,16 @@ This skill is script-first.
 
 ## Capability Surface
 
-- `scripts/cli.py` — unified entrypoint (`start`, `step`, `status`)
+- `scripts/cli.py` — unified entrypoint (`start`, `step`, `ingest-discord`, `approve`, `replay`, `status`)
 - `scripts/core/orchestrator.py` — state-machine transition engine
 - `scripts/core/storage.py` — run/event persistence
 - `scripts/workflows/collaboration/workflow.json` — generic multi-bot collaboration spec
 - `scripts/workflows/marketing_video/workflow.json` — marketing video pipeline spec
+- `scripts/ingest/discord_to_event.py` — Discord inbound to canonical events
+- `scripts/adapters/discord_adapter.py` — canonical actions to outbound message payloads
 - `references/schemas/*.json` — event/state/action/workflow contracts
+- `references/policies/defaults.json` — timeout/delivery/messaging defaults
+- `references/regressions/sample-discord-inbound.jsonl` — replay sample
 
 ## Execution Contract
 

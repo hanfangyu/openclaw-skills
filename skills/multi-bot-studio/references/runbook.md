@@ -26,3 +26,10 @@
 
 - W1/W2 timeout behavior is read from workflow config.
 - Fallback is only allowed when orchestrator enters `FALLBACK_ALLOWED`.
+- `outbound.jsonl` is generated on every step/ingest/approve call for sender integration.
+
+## Regression Test
+
+```bash
+uv run python skills/multi-bot-studio/scripts/tests/test_v14.py
+```
