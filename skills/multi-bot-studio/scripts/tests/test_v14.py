@@ -64,6 +64,18 @@ def test_emit_queue_and_dryrun():
     assert '"mode": "queue"' in out_queue
 
 
+def test_dispatch_worker_dedup():
+    run_id = "test-v14-004"
+    run(["python", str(CLI), "start", "--workflow", "collaboration", "--run-id", run_id])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"e1","type":"role_ack","role":"writer","ts":1700000000}, ensure_ascii=False)])
+    run(["python", str(CLI), "emit", "--run-id", run_id, "--mode", "queue"])
+
+    out1 = run(["python", str(CLI), "dispatch", "--run-id", run_id, "--mode", "commit"])
+    out2 = run(["python", str(CLI), "dispatch", "--run-id", run_id, "--mode", "commit"])
+    # second commit should find nothing new due to sent-id dedup
+    assert '"count": 0' in out2
+
+
 def test_dedup():
     run_id = "test-v14-002"
     run(["python", str(CLI), "start", "--workflow", "collaboration", "--run-id", run_id])
@@ -76,5 +88,6 @@ def test_dedup():
 if __name__ == "__main__":
     test_happy_path_and_gates()
     test_emit_queue_and_dryrun()
+    test_dispatch_worker_dedup()
     test_dedup()
     print("OK")

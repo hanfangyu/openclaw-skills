@@ -12,7 +12,7 @@ from core.renderer import render_actions
 from core.replay import replay_events
 from core.fallback import apply_fallback_approval
 from adapters.discord_adapter import to_outbound_messages
-from core.sender import emit_outbound, dispatch_outbound
+from core.sender import emit_outbound, dispatch_outbound, dispatch_worker
 from ingest.discord_to_event import message_to_event
 
 
@@ -171,6 +171,12 @@ def cmd_emit(base: Path, run_id: str, mode: str, limit: int):
     print(json.dumps(result, ensure_ascii=False))
 
 
+def cmd_dispatch(base: Path, run_id: str, mode: str, limit: int):
+    rd = ensure_run(base, run_id)
+    result = dispatch_worker(rd, mode=mode, limit=limit)
+    print(json.dumps(result, ensure_ascii=False))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-dir", default=str(Path(__file__).resolve().parents[1]))
@@ -204,6 +210,11 @@ def main():
     sp.add_argument("--mode", choices=["dry_run", "queue"], default="dry_run")
     sp.add_argument("--limit", type=int, default=20)
 
+    sp = sub.add_parser("dispatch")
+    sp.add_argument("--run-id", required=True)
+    sp.add_argument("--mode", choices=["dry_run", "commit"], default="dry_run")
+    sp.add_argument("--limit", type=int, default=20)
+
     args = ap.parse_args()
     base = Path(args.base_dir)
 
@@ -221,6 +232,8 @@ def main():
         cmd_replay(base, args.run_id)
     elif args.cmd == "emit":
         cmd_emit(base, args.run_id, args.mode, args.limit)
+    elif args.cmd == "dispatch":
+        cmd_dispatch(base, args.run_id, args.mode, args.limit)
 
 
 if __name__ == "__main__":
