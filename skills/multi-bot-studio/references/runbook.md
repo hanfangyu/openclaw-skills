@@ -21,6 +21,8 @@
   - `uv run python skills/multi-bot-studio/scripts/cli.py dispatch --run-id <id> --mode dry_run`
   - `uv run python skills/multi-bot-studio/scripts/cli.py dispatch --run-id <id> --mode export`
   - `uv run python skills/multi-bot-studio/scripts/cli.py dispatch --run-id <id> --mode commit`
+- Apply send receipts:
+  - `uv run python skills/multi-bot-studio/scripts/cli.py receipts --run-id <id> --receipts-json '[{"dispatch_id":"...","ok":true}]'`
 
 ## Event Examples
 

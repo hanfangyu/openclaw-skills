@@ -12,7 +12,7 @@ from core.renderer import render_actions
 from core.replay import replay_events
 from core.fallback import apply_fallback_approval
 from adapters.discord_adapter import to_outbound_messages
-from core.sender import emit_outbound, dispatch_outbound, dispatch_worker
+from core.sender import emit_outbound, dispatch_outbound, dispatch_worker, apply_receipts
 from ingest.discord_to_event import message_to_event
 
 
@@ -177,6 +177,15 @@ def cmd_dispatch(base: Path, run_id: str, mode: str, limit: int):
     print(json.dumps(result, ensure_ascii=False))
 
 
+def cmd_receipts(base: Path, run_id: str, receipts_json: str):
+    rd = ensure_run(base, run_id)
+    receipts = json.loads(receipts_json)
+    if not isinstance(receipts, list):
+        raise SystemExit("receipts-json must be a JSON array")
+    result = apply_receipts(rd, receipts)
+    print(json.dumps(result, ensure_ascii=False))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-dir", default=str(Path(__file__).resolve().parents[1]))
@@ -215,6 +224,10 @@ def main():
     sp.add_argument("--mode", choices=["dry_run", "export", "commit"], default="dry_run")
     sp.add_argument("--limit", type=int, default=20)
 
+    sp = sub.add_parser("receipts")
+    sp.add_argument("--run-id", required=True)
+    sp.add_argument("--receipts-json", required=True)
+
     args = ap.parse_args()
     base = Path(args.base_dir)
 
@@ -234,6 +247,8 @@ def main():
         cmd_emit(base, args.run_id, args.mode, args.limit)
     elif args.cmd == "dispatch":
         cmd_dispatch(base, args.run_id, args.mode, args.limit)
+    elif args.cmd == "receipts":
+        cmd_receipts(base, args.run_id, args.receipts_json)
 
 
 if __name__ == "__main__":

@@ -44,7 +44,7 @@ def dispatch_outbound(run_dir: Path, mode: str = "dry_run", limit: int = 20) -> 
                     "action": "send",
                     "channel": m.get("channel", "discord"),
                     "target": m.get("target"),
-                    "message": m.get("text", "")
+                    "message": m.get("text", ""),
                 }
                 f.write(json.dumps(payload, ensure_ascii=False) + "\n")
         return {"ok": True, "mode": mode, "count": len(items), "queue_path": str(queue)}
@@ -97,20 +97,57 @@ def dispatch_worker(run_dir: Path, mode: str = "dry_run", limit: int = 20) -> Di
     if mode == "export":
         payloads = []
         for row in pending:
-            payloads.append({
-                "dispatch_id": row["dispatch_id"],
-                "action": "send",
-                "channel": row.get("channel", "discord"),
-                "target": row.get("target"),
-                "message": row.get("message", ""),
-            })
+            payloads.append(
+                {
+                    "dispatch_id": row["dispatch_id"],
+                    "action": "send",
+                    "channel": row.get("channel", "discord"),
+                    "target": row.get("target"),
+                    "message": row.get("message", ""),
+                }
+            )
         return {"ok": True, "mode": mode, "count": len(payloads), "payloads": payloads}
 
     if mode == "commit":
         now = int(time.time())
         with sent_path.open("a", encoding="utf-8") as f:
             for row in pending:
-                f.write(json.dumps({"dispatch_id": row["dispatch_id"], "status": "committed", "ts": now}, ensure_ascii=False) + "\n")
+                f.write(
+                    json.dumps(
+                        {
+                            "dispatch_id": row["dispatch_id"],
+                            "status": "committed",
+                            "ts": now,
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
         return {"ok": True, "mode": mode, "count": len(pending), "items": pending}
 
     raise ValueError(f"unsupported worker mode: {mode}")
+
+
+def apply_receipts(run_dir: Path, receipts: List[Dict]) -> Dict:
+    sent_path = run_dir / "sent.jsonl"
+    existing = _load_sent_ids(sent_path)
+    now = int(time.time())
+    applied = 0
+
+    with sent_path.open("a", encoding="utf-8") as f:
+        for r in receipts:
+            did = str(r.get("dispatch_id") or "")
+            if not did or did in existing:
+                continue
+            row = {
+                "dispatch_id": did,
+                "status": "sent" if r.get("ok", True) else "failed",
+                "provider_message_id": r.get("provider_message_id"),
+                "error": r.get("error"),
+                "ts": int(r.get("ts") or now),
+            }
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            applied += 1
+            existing.add(did)
+
+    return {"ok": True, "applied": applied}
