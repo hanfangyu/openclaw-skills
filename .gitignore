@@ -12,6 +12,8 @@ python-websearch-skill/
 open-webSearch/
 open_websearch/
 scripts/
+!skills/evolink-production-playbook/scripts/
+!skills/evolink-production-playbook/scripts/editor_wait_gate.py
 __pycache__/
 *.pyc
 *.pyo

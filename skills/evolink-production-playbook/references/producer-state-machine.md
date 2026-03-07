@@ -9,10 +9,12 @@
 - `PLANNING`：四问锁参与总计划
 - `ACK_WAIT`：四问完成后，等待全员在线 ACK（ACK 回执需 @抓总）
 - `DISPATCHING`：已派当前棒次，等待岗位交付
+- `EDITOR_WAITING`：剪辑已开工，等待“实物交付（附件/链接）”
 - `REVIEWING`：收到交付，验收中
 - `REVISING`：已打回，等待同岗位修订
 - `ADVANCING`：验收通过，切换下一棒
 - `DONE`：全部岗位完成
+- `FALLBACK_ALLOWED`：剪辑等待超时，允许抓总兜底合成
 - `BLOCKED`：异常中止（需人类决策）
 
 ## 转移规则
@@ -22,6 +24,10 @@
 3. `PLANNING -> ACK_WAIT`：抓总发起全员 ACK 点名
 4. `ACK_WAIT -> DISPATCHING`：全员 ACK 完成并发布第1棒任务卡
 5. `DISPATCHING -> REVIEWING`：收到标准回传（必须@抓总）
+5.1 `DISPATCHING(editor) -> EDITOR_WAITING`：剪辑回传“执行中/已开工”但未附实物交付
+5.2 `EDITOR_WAITING -> REVIEWING`：收到审片附件或主版链接/附件
+5.3 `EDITOR_WAITING -> FALLBACK_ALLOWED`：W1+W2 超时后仍无实物交付
+5.4 `FALLBACK_ALLOWED -> DISPATCHING`：抓总发起兜底合成
 6. `REVIEWING -> ADVANCING`：验收通过
 7. `REVIEWING -> REVISING`：打回修改
 8. `REVISING -> REVIEWING`：同岗位提交新版本
@@ -47,7 +53,8 @@
 - 若时长参数映射校验未通过（分段时长与API参数不一致或总和≠目标时长），禁止进入抓总生成阶段。
 - BLOCKED 解除后默认从最近已验收完成棒次的下一棒恢复，除非用户明确要求重跑。
 - 未拿到剪辑输出（审片附件 + 30s主版可播放链接）时，禁止宣布“REAL流程完成”。
-- 若剪辑在收到完整输入包后持续仅“审核中/进行中”且无实物交付（附件或链接），抓总可触发兜底合成流程并继续验收收口。
+- 若剪辑在收到完整输入包后持续仅“审核中/进行中”且无实物交付（附件或链接），抓总仅可在 `FALLBACK_ALLOWED` 状态触发兜底合成。
+- 进入 `EDITOR_WAITING` 后必须执行两段式等待：W1=120s（窗口）+ W2=180s（提醒后窗口）；W2 到期前禁止兜底。
 
 ## 最小状态记录模板
 

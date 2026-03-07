@@ -13,6 +13,7 @@ description: 品牌营销视频单技能流程（抓总+编剧+导演+视效+剪
 - 抓总调度：`references/producer-orchestrator.md`
 - 阶段命令模板：`references/phase-command-templates.md`
 - 抓总状态机：`references/producer-state-machine.md`
+- 剪辑等待/超时脚本门禁：`references/editor-timeout-automation.md`
 - REAL交付门禁：`references/real-delivery-gate.md`
 - 统一回传协议：`references/handoff-protocol.md`
 - 编剧模块：`references/writer-sop.md`
@@ -33,6 +34,7 @@ description: 品牌营销视频单技能流程（抓总+编剧+导演+视效+剪
 7. 全员必须遵守 `handoff-protocol.md` 回传格式与验收门禁；在 Discord 频道内默认启用抗截断短模板回传。
 8. 多 bot 视频任务默认在**任务线程**中启动与推进，主频道只做分发、确认与总结。
 9. 视频时长超过单模型能力时，按模板分段；失败仅单段重试。
+10. 当剪辑师回传“执行中/已开工”后，必须按 `editor-timeout-automation.md` 进入脚本化等待与催办；在首个等待窗口结束前，禁止抓总手动兜底。
 
 ## 多 Agent 映射（固定约定）
 
