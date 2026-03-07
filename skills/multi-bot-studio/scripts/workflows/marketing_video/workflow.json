@@ -2,6 +2,7 @@
   "name": "marketing_video",
   "roles": ["writer", "director", "vfx", "editor"],
   "steps": ["writer", "director", "vfx", "editor"],
+  "entry_state": "PLANNING",
   "gates": {
     "require_four_questions": true,
     "require_duration_mapping": true,

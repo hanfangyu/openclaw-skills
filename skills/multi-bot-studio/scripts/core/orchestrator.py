@@ -11,6 +11,13 @@ def _dispatch_action(role: str, step_index: int) -> dict:
     }
 
 
+def _duration_gate_ok(state: Dict, workflow: Dict) -> bool:
+    gates = workflow.get("gates", {})
+    if not gates.get("require_duration_mapping"):
+        return True
+    return bool(state.get("gates", {}).get("duration_mapping_passed"))
+
+
 def _advance_step(state: Dict, workflow: Dict) -> List[dict]:
     actions: List[dict] = []
     idx = int(state.get("step_index") or 0)
@@ -23,10 +30,36 @@ def _advance_step(state: Dict, workflow: Dict) -> List[dict]:
         return actions
 
     role = steps[next_idx]
+
+    # marketing_video gate: require duration mapping pass before editor
+    if role == "editor" and not _duration_gate_ok(state, workflow):
+        state["status"] = "BLOCKED"
+        actions.append({
+            "type": "blocked",
+            "text": "阻塞：未通过时长映射门禁（duration_mapping_passed=false），禁止进入剪辑。"
+        })
+        return actions
+
     state["status"] = "DISPATCHING"
     state["step_index"] = next_idx
     state["current_role"] = role
     actions.append(_dispatch_action(role, next_idx))
+    return actions
+
+
+def _handle_param_lock(state: Dict, workflow: Dict, event: Dict) -> List[dict]:
+    actions: List[dict] = []
+    required = ["topic", "model_preset", "aspect_ratio", "reference_image_provided", "duration_sec"]
+    payload = event.get("payload") or {}
+    missing = [k for k in required if k not in payload]
+    if missing:
+        actions.append({"type": "param_lock_invalid", "text": f"锁参缺失字段：{','.join(missing)}"})
+        return actions
+
+    state["params"] = payload
+    state.setdefault("gates", {})["four_questions_passed"] = True
+    state["status"] = "ACK_WAIT"
+    actions.append({"type": "param_lock_ok", "text": "四问锁参完成，进入 ACK_WAIT。"})
     return actions
 
 
@@ -35,7 +68,15 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
     status = state.get("status")
     et = event.get("type")
 
-    if et == "role_ack" and status == "ACK_WAIT":
+    if et == "lock_params":
+        actions.extend(_handle_param_lock(state, workflow, event))
+
+    elif et == "duration_mapping":
+        passed = bool(event.get("payload", {}).get("pass"))
+        state.setdefault("gates", {})["duration_mapping_passed"] = passed
+        actions.append({"type": "duration_mapping", "text": f"时长映射校验：{'PASS' if passed else 'FAIL'}"})
+
+    elif et == "role_ack" and status == "ACK_WAIT":
         role = event.get("role")
         if role in state["ack"]["required"] and role not in state["ack"]["received"]:
             state["ack"]["received"].append(role)
@@ -67,8 +108,6 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
         elif event.get("has_delivery"):
             state["status"] = "REVIEWING"
             actions.append({"type": "review", "text": f"收到 {role} 实物交付，进入验收。"})
-
-            # v1.1: auto-pass to next step when a role delivers
             actions.extend(_advance_step(state, workflow))
 
     elif et == "timer_tick" and status == "EDITOR_WAITING":

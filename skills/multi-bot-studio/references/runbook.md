@@ -12,6 +12,8 @@
   - `uv run python skills/multi-bot-studio/scripts/cli.py approve --run-id <id> --action fallback --approved true`
 - Replay run:
   - `uv run python skills/multi-bot-studio/scripts/cli.py replay --run-id <id>`
+- Ingest Discord message:
+  - `uv run python skills/multi-bot-studio/scripts/cli.py ingest-discord --run-id <id> --message-json '<json>'`
 
 ## Event Examples
 

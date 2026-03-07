@@ -12,6 +12,8 @@ from core.renderer import render_actions
 from core.replay import replay_events
 from core.fallback import apply_fallback_approval
 from adapters.discord_adapter import to_outbound_messages
+from core.sender import emit_outbound
+from ingest.discord_to_event import message_to_event
 
 
 def _workflow_path(base: Path, workflow: str) -> Path:
@@ -28,32 +30,37 @@ def cmd_start(base: Path, workflow: str, run_id: str):
     state = {
         "run_id": run_id,
         "workflow": workflow,
-        "status": "ACK_WAIT",
+        "status": wf.get("entry_state", "ACK_WAIT"),
         "step_index": None,
         "current_role": None,
         "ack": {"required": wf["roles"], "received": []},
         "timers": {},
+        "gates": {
+            "four_questions_passed": False,
+            "duration_mapping_passed": not wf.get("gates", {}).get("require_duration_mapping", False)
+        },
         "processed_event_ids": [],
         "history": []
     }
     save_json(rd / "state.json", state)
     (rd / "events.jsonl").touch(exist_ok=True)
+    (rd / "outbound.jsonl").touch(exist_ok=True)
     print(json.dumps({"ok": True, "run_id": run_id, "status": state["status"]}, ensure_ascii=False))
 
 
-def cmd_step(base: Path, run_id: str, event_json: str):
+def _apply(base: Path, run_id: str, raw_event: dict):
     rd = ensure_run(base, run_id)
     state = load_json(rd / "state.json", {})
     if not state:
         raise SystemExit(f"run not found: {run_id}")
     wf = _load_workflow(base, state["workflow"])
 
-    raw_event = json.loads(event_json)
     event = normalize_event(raw_event)
     eid = event_id_for(event)
 
     if is_processed(state, eid):
-        print(json.dumps({"ok": True, "state": state["status"], "actions": [], "rendered": [], "outbound": [], "dedup": True}, ensure_ascii=False))
+        result = {"ok": True, "state": state["status"], "actions": [], "rendered": [], "outbound": [], "dedup": True}
+        print(json.dumps(result, ensure_ascii=False))
         return
 
     append_event(rd / "events.jsonl", {"event_id": eid, **event})
@@ -63,7 +70,20 @@ def cmd_step(base: Path, run_id: str, event_json: str):
 
     rendered = render_actions(actions, wf)
     outbound = to_outbound_messages(run_id, rendered)
-    print(json.dumps({"ok": True, "state": state["status"], "actions": actions, "rendered": rendered, "outbound": outbound}, ensure_ascii=False))
+    emit_outbound(rd, outbound)
+    result = {"ok": True, "state": state["status"], "actions": actions, "rendered": rendered, "outbound": outbound}
+    print(json.dumps(result, ensure_ascii=False))
+
+
+def cmd_step(base: Path, run_id: str, event_json: str):
+    raw_event = json.loads(event_json)
+    _apply(base, run_id, raw_event)
+
+
+def cmd_ingest_discord(base: Path, run_id: str, message_json: str):
+    msg = json.loads(message_json)
+    event = message_to_event(msg)
+    _apply(base, run_id, event)
 
 
 def cmd_status(base: Path, run_id: str):
@@ -86,6 +106,7 @@ def cmd_approve(base: Path, run_id: str, action: str, approved: bool):
     save_json(rd / "state.json", state)
     rendered = render_actions(actions, wf)
     outbound = to_outbound_messages(run_id, rendered)
+    emit_outbound(rd, outbound)
     print(json.dumps({"ok": True, "state": state["status"], "actions": actions, "rendered": rendered, "outbound": outbound}, ensure_ascii=False))
 
 
@@ -96,15 +117,18 @@ def cmd_replay(base: Path, run_id: str):
         raise SystemExit(f"run not found: {run_id}")
 
     wf = _load_workflow(base, state["workflow"])
-    # Rebuild from clean initial skeleton for deterministic replay
     initial = {
         "run_id": run_id,
         "workflow": state["workflow"],
-        "status": "ACK_WAIT",
+        "status": wf.get("entry_state", "ACK_WAIT"),
         "step_index": None,
         "current_role": None,
         "ack": {"required": wf["roles"], "received": []},
         "timers": {},
+        "gates": {
+            "four_questions_passed": False,
+            "duration_mapping_passed": not wf.get("gates", {}).get("require_duration_mapping", False)
+        },
         "processed_event_ids": [],
         "history": []
     }
@@ -125,6 +149,10 @@ def main():
     sp.add_argument("--run-id", required=True)
     sp.add_argument("--event-json", required=True)
 
+    sp = sub.add_parser("ingest-discord")
+    sp.add_argument("--run-id", required=True)
+    sp.add_argument("--message-json", required=True)
+
     sp = sub.add_parser("status")
     sp.add_argument("--run-id", required=True)
 
@@ -143,6 +171,8 @@ def main():
         cmd_start(base, args.workflow, args.run_id)
     elif args.cmd == "step":
         cmd_step(base, args.run_id, args.event_json)
+    elif args.cmd == "ingest-discord":
+        cmd_ingest_discord(base, args.run_id, args.message_json)
     elif args.cmd == "status":
         cmd_status(base, args.run_id)
     elif args.cmd == "approve":
