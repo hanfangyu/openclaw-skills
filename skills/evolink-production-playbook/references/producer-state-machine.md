@@ -5,6 +5,7 @@
 ## 状态定义
 
 - `IDLE`：待命
+- `ACK_WAIT`：已确认走工作流，等待全员在线 ACK
 - `PLANNING`：已接单，正在输出总计划
 - `DISPATCHING`：已派当前棒次，等待岗位交付
 - `REVIEWING`：收到交付，验收中
@@ -15,22 +16,25 @@
 
 ## 转移规则
 
-1. `IDLE -> PLANNING`：收到开工指令
-2. `PLANNING -> DISPATCHING`：发布总计划+第1棒任务卡
-3. `DISPATCHING -> REVIEWING`：收到标准回传（必须@抓总）
-4. `REVIEWING -> ADVANCING`：验收通过
-5. `REVIEWING -> REVISING`：打回修改
-6. `REVISING -> REVIEWING`：同岗位提交新版本
-7. `ADVANCING -> DISPATCHING`：发布下一棒任务卡
-8. `ADVANCING -> DONE`：最后一棒通过
-9. 任意状态 -> `BLOCKED`：连续2次打回仍不通过或输入冲突
+1. `IDLE -> ACK_WAIT`：用户确认执行标准工作流
+2. `ACK_WAIT -> PLANNING`：全员 ACK 完成
+3. `PLANNING -> DISPATCHING`：发布总计划+第1棒任务卡
+4. `DISPATCHING -> REVIEWING`：收到标准回传（必须@抓总）
+5. `REVIEWING -> ADVANCING`：验收通过
+6. `REVIEWING -> REVISING`：打回修改
+7. `REVISING -> REVIEWING`：同岗位提交新版本
+8. `ADVANCING -> DISPATCHING`：发布下一棒任务卡
+9. `ADVANCING -> DONE`：最后一棒通过
+10. 任意状态 -> `BLOCKED`：连续2次打回仍不通过或输入冲突
 
 ## 门禁条件
 
 - 当前状态不是 `ADVANCING` 时，禁止派下一棒。
 - 当前状态不是 `REVIEWING` 时，禁止发“验收通过/打回修改”。
+- `ACK_WAIT` 未完成时，禁止发布第1棒任务卡。
 - 非当前岗位交付，直接忽略并提醒“等待被派工”。
-- 未产出**真实视频分段素材 URL（S1..Sn）**时，禁止宣布“可剪辑/可成片”。
+- 分镜图未通过（含图像清洁度不通过）时，禁止进入视频生成。
+- 未产出并通过三类素材（分镜图/分段视频/音乐）时，禁止宣布“可剪辑/可成片”。
 - 未拿到剪辑输出（30s主版URL + 15s切片URL）时，禁止宣布“REAL流程完成”。
 
 ## 最小状态记录模板
