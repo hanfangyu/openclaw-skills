@@ -64,6 +64,7 @@ Avoid: identity drift, excessive shake, cluttered foreground.
 
 ### 参数护栏
 - 先校验模型是否支持目标时长与质量；不支持则分段/降级。
+- 分段节奏必须由脚本驱动：先由编剧+导演给出分段表，再将每段时长映射到 `duration` 参数生成对应视频段。
 - 若需首尾帧，先确认模型支持双图模式；否则改为单图i2v+剪辑衔接。
 
 ---
