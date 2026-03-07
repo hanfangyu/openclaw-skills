@@ -6,7 +6,7 @@
 
 - `IDLE`：待命
 - `ACK_WAIT`：已确认走工作流，等待全员在线 ACK（ACK 回执需 @抓总）
-- `PLANNING`：已接单，正在输出总计划
+- `PLANNING`：已接单，完成四问锁参与总计划
 - `DISPATCHING`：已派当前棒次，等待岗位交付
 - `REVIEWING`：收到交付，验收中
 - `REVISING`：已打回，等待同岗位修订
@@ -16,9 +16,9 @@
 
 ## 转移规则
 
-1. `IDLE -> ACK_WAIT`：用户确认执行标准工作流（确认前禁止 @ 执行机器人）
-2. `ACK_WAIT -> PLANNING`：全员 ACK 完成
-3. `PLANNING -> DISPATCHING`：发布总计划+第1棒任务卡
+1. `IDLE -> PLANNING`：用户确认执行标准工作流并完成四问锁参（确认前禁止 @ 执行机器人）
+2. `PLANNING -> ACK_WAIT`：抓总发起全员 ACK 点名
+3. `ACK_WAIT -> DISPATCHING`：全员 ACK 完成并发布第1棒任务卡
 4. `DISPATCHING -> REVIEWING`：收到标准回传（必须@抓总）
 5. `REVIEWING -> ADVANCING`：验收通过
 6. `REVIEWING -> REVISING`：打回修改
@@ -31,7 +31,9 @@
 
 - 当前状态不是 `ADVANCING` 时，禁止派下一棒。
 - 当前状态不是 `REVIEWING` 时，禁止发“验收通过/打回修改”。
+- 四问未完成时，禁止进入 `ACK_WAIT`。
 - `ACK_WAIT` 未完成时，禁止发布第1棒任务卡。
+- `ACK_WAIT` 超过 3 分钟未齐时仅提醒一次；再 3 分钟未齐，转人工判定。
 - 非当前岗位交付，直接忽略并提醒“等待被派工”。
 - ACK 或执行回传若出现除 `@抓总` 外的额外 @，判定为格式不合规并要求按规范重发。
 - 分镜图未通过（含图像清洁度不通过）时，禁止进入视频生成。
