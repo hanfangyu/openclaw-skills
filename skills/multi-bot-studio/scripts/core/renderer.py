@@ -7,13 +7,33 @@ def _role_label(workflow: Dict, role: str) -> str:
     return mentions.get(role) or role
 
 
+def _render_dispatch(a: Dict, workflow: Dict) -> List[str]:
+    role = a.get("target_role", "")
+    step = a.get("meta", {}).get("step", "?")
+    role_mention = _role_label(workflow, role)
+
+    templates = (workflow.get("dispatch_templates") or {}).get(role)
+    if templates:
+        out = []
+        for line in templates:
+            out.append(
+                line.format(
+                    role=role,
+                    role_mention=role_mention,
+                    step=step,
+                )
+            )
+        return out
+
+    return [f"{role_mention} 第{step}棒开始执行。"]
+
+
 def render_actions(actions: List[Dict], workflow: Dict) -> List[str]:
     lines: List[str] = []
     for a in actions:
         t = a.get("type")
         if t == "dispatch":
-            role = _role_label(workflow, a.get("target_role", ""))
-            lines.append(f"{role} 第{a.get('meta', {}).get('step', '?')}棒开始执行。")
+            lines.extend(_render_dispatch(a, workflow))
         elif t == "ack_progress":
             lines.append(a.get("text", ""))
         elif t == "wait_notice":
