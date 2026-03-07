@@ -28,7 +28,13 @@ def message_to_event(message: Dict) -> Dict:
         "media_count": int(message.get("media_count") or 0),
     }
 
-    if role and ("ACK + 在线" in text or "【状态】已收到" in text or "状态】已收到" in text):
+    if role and (
+        "ACK + 在线" in text
+        or "【状态】已收到" in text
+        or "状态】已收到" in text
+        or "已收到" in text
+        or text.strip().startswith("收到")
+    ):
         event["type"] = "role_ack"
     elif role:
         event["type"] = "role_update"
