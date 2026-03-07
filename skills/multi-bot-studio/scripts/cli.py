@@ -183,8 +183,8 @@ def cmd_replay(base: Path, run_id: str):
         "processed_event_ids": [],
         "history": []
     }
-    replayed_state, outputs = replay_events(initial, wf, rd / "events.jsonl")
-    print(json.dumps({"ok": True, "replayed_state": replayed_state.get("status"), "events": len(outputs), "outputs": outputs[-5:]}, ensure_ascii=False))
+    replayed_state, outputs, summary = replay_events(initial, wf, rd / "events.jsonl")
+    print(json.dumps({"ok": True, "replayed_state": replayed_state.get("status"), "events": len(outputs), "summary": summary, "outputs": outputs[-5:]}, ensure_ascii=False))
 
 
 def cmd_emit(base: Path, run_id: str, mode: str, limit: int):

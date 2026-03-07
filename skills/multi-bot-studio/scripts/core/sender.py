@@ -130,24 +130,31 @@ def dispatch_worker(run_dir: Path, mode: str = "dry_run", limit: int = 20) -> Di
 
 def apply_receipts(run_dir: Path, receipts: List[Dict]) -> Dict:
     sent_path = run_dir / "sent.jsonl"
+    dead_path = run_dir / "dead_letter.jsonl"
     existing = _load_sent_ids(sent_path)
     now = int(time.time())
     applied = 0
+    failed = 0
 
-    with sent_path.open("a", encoding="utf-8") as f:
+    with sent_path.open("a", encoding="utf-8") as sent_f, dead_path.open("a", encoding="utf-8") as dead_f:
         for r in receipts:
             did = str(r.get("dispatch_id") or "")
             if not did or did in existing:
                 continue
+
+            ok = bool(r.get("ok", True))
             row = {
                 "dispatch_id": did,
-                "status": "sent" if r.get("ok", True) else "failed",
+                "status": "sent" if ok else "failed",
                 "provider_message_id": r.get("provider_message_id"),
                 "error": r.get("error"),
                 "ts": int(r.get("ts") or now),
             }
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            sent_f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            if not ok:
+                failed += 1
+                dead_f.write(json.dumps({"dispatch_id": did, "reason": row.get("error"), "ts": row["ts"]}, ensure_ascii=False) + "\n")
             applied += 1
             existing.add(did)
 
-    return {"ok": True, "applied": applied}
+    return {"ok": True, "applied": applied, "failed": failed}

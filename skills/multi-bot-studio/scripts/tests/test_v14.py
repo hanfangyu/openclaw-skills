@@ -90,9 +90,20 @@ def test_receipts_apply():
     assert data.get("count", 0) >= 1
     first = data["payloads"][0]
 
-    receipt = json.dumps([{"dispatch_id": first["dispatch_id"], "ok": True, "provider_message_id": "msg-1"}], ensure_ascii=False)
+    receipt = json.dumps([
+        {"dispatch_id": first["dispatch_id"], "ok": False, "error": "network"}
+    ], ensure_ascii=False)
     receipts_out = run(["python", str(CLI), "receipts", "--run-id", run_id, "--receipts-json", receipt])
     assert '"applied": 1' in receipts_out
+    assert '"failed": 1' in receipts_out
+
+
+def test_replay_summary():
+    run_id = "test-v14-006"
+    run(["python", str(CLI), "start", "--workflow", "collaboration", "--run-id", run_id])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"x1","type":"role_ack","role":"writer","ts":1700000000}, ensure_ascii=False)])
+    out = run(["python", str(CLI), "replay", "--run-id", run_id])
+    assert '"summary"' in out
 
 
 def test_dedup():
@@ -109,5 +120,6 @@ if __name__ == "__main__":
     test_emit_queue_and_dryrun()
     test_dispatch_worker_dedup()
     test_receipts_apply()
+    test_replay_summary()
     test_dedup()
     print("OK")
