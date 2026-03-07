@@ -14,6 +14,8 @@ open_websearch/
 scripts/
 !skills/evolink-production-playbook/scripts/
 !skills/evolink-production-playbook/scripts/editor_wait_gate.py
+!skills/multi-bot-studio/scripts/
+!skills/multi-bot-studio/scripts/**
 __pycache__/
 *.pyc
 *.pyo

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunState",
+  "type": "object",
+  "required": ["run_id", "workflow", "status"],
+  "properties": {
+    "run_id": {"type": "string"},
+    "workflow": {"type": "string"},
+    "status": {"type": "string"},
+    "current_role": {"type": ["string", "null"]},
+    "ack": {
+      "type": "object",
+      "properties": {
+        "required": {"type": "array", "items": {"type": "string"}},
+        "received": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "timers": {"type": "object"},
+    "history": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": true
+}

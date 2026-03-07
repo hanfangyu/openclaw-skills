@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkflowConfig",
+  "type": "object",
+  "required": ["name", "roles", "steps"],
+  "properties": {
+    "name": {"type": "string"},
+    "roles": {"type": "array", "items": {"type": "string"}},
+    "steps": {"type": "array", "items": {"type": "string"}},
+    "editor_wait": {
+      "type": "object",
+      "properties": {
+        "w1_sec": {"type": "integer"},
+        "w2_sec": {"type": "integer"}
+      }
+    }
+  },
+  "additionalProperties": true
+}

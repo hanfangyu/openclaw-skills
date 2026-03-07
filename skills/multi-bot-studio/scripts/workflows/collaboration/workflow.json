@@ -1,0 +1,6 @@
+{
+  "name": "collaboration",
+  "roles": ["writer", "director", "vfx", "editor"],
+  "steps": ["writer", "director", "vfx", "editor"],
+  "editor_wait": {"w1_sec": 120, "w2_sec": 180}
+}

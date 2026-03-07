@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Event",
+  "type": "object",
+  "required": ["type", "ts"],
+  "properties": {
+    "type": {"type": "string"},
+    "ts": {"type": "integer"},
+    "role": {"type": "string"},
+    "status": {"type": "string"},
+    "has_delivery": {"type": "boolean"},
+    "payload": {"type": "object"}
+  },
+  "additionalProperties": true
+}

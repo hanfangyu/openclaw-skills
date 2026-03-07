@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Action",
+  "type": "object",
+  "required": ["type", "text"],
+  "properties": {
+    "type": {"type": "string"},
+    "text": {"type": "string"},
+    "target_role": {"type": "string"},
+    "meta": {"type": "object"}
+  },
+  "additionalProperties": true
+}

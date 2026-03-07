@@ -1,0 +1,23 @@
+{
+  "name": "marketing_video",
+  "roles": ["writer", "director", "vfx", "editor"],
+  "steps": ["writer", "director", "vfx", "editor"],
+  "gates": {
+    "require_four_questions": true,
+    "require_duration_mapping": true,
+    "require_asset_delivery": true
+  },
+  "editor_wait": {"w1_sec": 120, "w2_sec": 180},
+  "model_presets": {
+    "default_last_verified": {
+      "image": "doubao-seedream-4.5",
+      "video": "doubao-seedance-1.0-pro-fast",
+      "music": "suno-v4.5"
+    },
+    "low_cost_test": {
+      "image": "z-image-turbo",
+      "video": "doubao-seedance-1.0-pro-fast",
+      "music": "suno-v4"
+    }
+  }
+}
