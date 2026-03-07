@@ -2,12 +2,32 @@ from __future__ import annotations
 from typing import Dict, List, Tuple
 
 
-def _dispatch_action(role: str) -> dict:
+def _dispatch_action(role: str, step_index: int) -> dict:
     return {
         "type": "dispatch",
         "target_role": role,
+        "meta": {"step": step_index + 1},
         "text": f"派工：{role} 开始当前棒次，完成后按模板回传。"
     }
+
+
+def _advance_step(state: Dict, workflow: Dict) -> List[dict]:
+    actions: List[dict] = []
+    idx = int(state.get("step_index") or 0)
+    next_idx = idx + 1
+    steps = workflow.get("steps", [])
+    if next_idx >= len(steps):
+        state["status"] = "DONE"
+        state["current_role"] = None
+        actions.append({"type": "done", "text": "全部棒次完成。"})
+        return actions
+
+    role = steps[next_idx]
+    state["status"] = "DISPATCHING"
+    state["step_index"] = next_idx
+    state["current_role"] = role
+    actions.append(_dispatch_action(role, next_idx))
+    return actions
 
 
 def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[dict]]:
@@ -28,7 +48,7 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
             state["status"] = "DISPATCHING"
             state["step_index"] = 0
             state["current_role"] = first
-            actions.append(_dispatch_action(first))
+            actions.append(_dispatch_action(first, 0))
 
     elif et == "role_update" and state.get("current_role") == event.get("role"):
         role = event.get("role")
@@ -42,14 +62,14 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
                 "w1_sec": workflow.get("editor_wait", {}).get("w1_sec", 120),
                 "w2_sec": workflow.get("editor_wait", {}).get("w2_sec", 180)
             }
-            actions.append({
-                "type": "wait_notice",
-                "text": "收到剪辑开工，进入等待窗口 W1。"
-            })
+            actions.append({"type": "wait_notice", "text": "收到剪辑开工，进入等待窗口 W1。"})
 
         elif event.get("has_delivery"):
             state["status"] = "REVIEWING"
             actions.append({"type": "review", "text": f"收到 {role} 实物交付，进入验收。"})
+
+            # v1.1: auto-pass to next step when a role delivers
+            actions.extend(_advance_step(state, workflow))
 
     elif et == "timer_tick" and status == "EDITOR_WAITING":
         timers = state.get("timers", {})

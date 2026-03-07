@@ -2,5 +2,12 @@
   "name": "collaboration",
   "roles": ["writer", "director", "vfx", "editor"],
   "steps": ["writer", "director", "vfx", "editor"],
-  "editor_wait": {"w1_sec": 120, "w2_sec": 180}
+  "editor_wait": {"w1_sec": 120, "w2_sec": 180},
+  "role_mentions": {
+    "writer": "<@1479043365684121651>",
+    "director": "<@1479044195233562657>",
+    "vfx": "<@1479051077096833190>",
+    "editor": "<@1479051272190693539>",
+    "producer": "<@1479001609127067720>"
+  }
 }

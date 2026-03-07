@@ -1,0 +1,28 @@
+from __future__ import annotations
+import re
+from typing import Dict
+
+URL_RE = re.compile(r"https?://\S+", re.I)
+VIDEO_HINT_RE = re.compile(r"\.(mp4|mov|m4v|webm)(\?|$)", re.I)
+
+
+def detect_delivery(event: Dict) -> bool:
+    if bool(event.get("has_delivery")):
+        return True
+    if int(event.get("media_count") or 0) > 0:
+        return True
+    text = str(event.get("text") or "")
+    urls = URL_RE.findall(text)
+    for u in urls:
+        if VIDEO_HINT_RE.search(u):
+            return True
+        if any(host in u for host in ("files.evolink.ai", "media.evolink.ai", "cdn.discordapp.com")):
+            return True
+    return False
+
+
+def normalize_event(event: Dict) -> Dict:
+    out = dict(event)
+    if out.get("type") == "role_update" and out.get("role") == "editor":
+        out["has_delivery"] = detect_delivery(out)
+    return out

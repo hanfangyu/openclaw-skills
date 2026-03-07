@@ -8,6 +8,10 @@
   - `uv run python skills/multi-bot-studio/scripts/cli.py step --run-id <id> --event-json '<json>'`
 - Show state:
   - `uv run python skills/multi-bot-studio/scripts/cli.py status --run-id <id>`
+- Approve fallback:
+  - `uv run python skills/multi-bot-studio/scripts/cli.py approve --run-id <id> --action fallback --approved true`
+- Replay run:
+  - `uv run python skills/multi-bot-studio/scripts/cli.py replay --run-id <id>`
 
 ## Event Examples
 
