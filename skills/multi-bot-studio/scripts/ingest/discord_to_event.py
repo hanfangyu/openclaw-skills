@@ -8,6 +8,16 @@ ROLE_MAP = {
     "1479051272190693539": "editor",
 }
 
+CONTROL_WORDS = (
+    "统计 ACK",
+    "统一统计",
+    "派工",
+    "开第1棒",
+    "开第一棒",
+    "我来统计",
+    "我再开",
+)
+
 
 def infer_role(sender_id: str) -> str | None:
     return ROLE_MAP.get(str(sender_id))
@@ -27,6 +37,12 @@ def message_to_event(message: Dict) -> Dict:
         "ts": ts,
         "media_count": int(message.get("media_count") or 0),
     }
+
+    # Non-producer role talking about ACK counting/dispatch is a role-boundary violation.
+    if role and any(w in text for w in CONTROL_WORDS):
+        event["type"] = "role_violation"
+        event["status"] = "越权"
+        return event
 
     if role and (
         "ACK + 在线" in text

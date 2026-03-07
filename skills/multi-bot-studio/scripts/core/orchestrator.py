@@ -125,5 +125,12 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
             state["status"] = "FALLBACK_ALLOWED"
             actions.append({"type": "fallback_allowed", "text": "W2到期：允许兜底流程。"})
 
+    elif et == "role_violation":
+        role = event.get("role") or "unknown"
+        actions.append({
+            "type": "role_violation",
+            "text": f"越权提示：{role} 只需汇报本角色产出；ACK统计与派工仅抓总负责。"
+        })
+
     state.setdefault("history", []).append({"event": event, "status": state.get("status")})
     return state, actions
