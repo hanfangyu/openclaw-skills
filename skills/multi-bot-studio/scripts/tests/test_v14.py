@@ -303,6 +303,48 @@ def test_handoff_mentions_on_gate_release():
     assert "director" in out
 
 
+def test_storyboard_confirm_auto_event():
+    run_id = "test-v14-012"
+    run(["python", str(CLI), "start", "--workflow", "marketing_video", "--run-id", run_id])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "p1",
+        "type": "lock_params",
+        "ts": 1700005000,
+        "payload": {
+            "topic": "品牌形象",
+            "model_preset": "default_last_verified",
+            "aspect_ratio": "16:9",
+            "reference_image_provided": False,
+            "duration_sec": 30,
+        }
+    }, ensure_ascii=False)])
+    for i, role in enumerate(["writer", "director", "vfx", "editor"], start=1):
+        run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+            "event_id": f"a{i}", "type": "role_ack", "role": role, "ts": 1700005000 + i
+        }, ensure_ascii=False)])
+
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"w1","type":"role_update","role":"writer","status":"已完成","has_delivery":True,"ts":1700005010}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v1","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 锚点图生成","ts":1700005020}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p1ok","type":"role_update","role":"producer","status":"已完成","text":"https://files.evolink.ai/a.png job_id=job_123","ts":1700005021}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"g1","type":"anchor_selected","ts":1700005022,"payload":{"pass":True,"anchor_id":"02"}}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"d1","type":"role_update","role":"director","status":"已完成","has_delivery":True,"ts":1700005030}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"w2","type":"role_update","role":"writer","status":"已完成","has_delivery":True,"ts":1700005040}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"gprompt","type":"prompt_pack_approved","ts":1700005041,"payload":{"pass":True}}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v2","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 分镜图生成","ts":1700005050}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p2ok","type":"role_update","role":"producer","status":"已完成","text":"https://cdn.discordapp.com/story1.png task_id=task_201","ts":1700005051}, ensure_ascii=False)])
+
+    # user natural-language confirmation should auto-convert and release to storyboard_videos with handoff mention
+    out = run(["python", str(CLI), "ingest-discord", "--run-id", run_id, "--message-json", json.dumps({
+        "message_id": "m-story-ok-1",
+        "sender_id": "1089470658276229140",
+        "text": "分镜确认通过",
+        "timestamp": 1700005052
+    }, ensure_ascii=False)])
+    assert '"state": "DISPATCHING"' in out
+    assert "storyboard_videos" in out
+    assert "接棒提示" in out
+
+
 def test_media_export_from_url_lines():
     run_id = "test-v14-009"
     run(["python", str(CLI), "start", "--workflow", "collaboration", "--run-id", run_id])
@@ -342,4 +384,5 @@ if __name__ == "__main__":
     test_media_export_from_url_lines()
     test_producer_executes_evolink_gate()
     test_handoff_mentions_on_gate_release()
+    test_storyboard_confirm_auto_event()
     print("OK")

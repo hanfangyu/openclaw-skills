@@ -11,6 +11,8 @@ ROLE_MAP = {
 }
 
 ANCHOR_SELECT_RE = re.compile(r"(主锚点|选择|选定).*(01|02|03|1|2|3)", re.I)
+STORYBOARD_CONFIRM_RE = re.compile(r"(分镜|storyboard).*(确认|通过|ok|没问题)", re.I)
+PROMPT_APPROVE_RE = re.compile(r"(提示词包|prompt\s*pack|prompt).*(通过|确认|approved|放行)", re.I)
 
 CONTROL_WORDS = (
     "统计 ACK",
@@ -43,15 +45,24 @@ def message_to_event(message: Dict) -> Dict:
         "sender_id": sender_id,
     }
 
-    # 用户在锚点阶段手动选择编号 -> 直接转 gate 事件
-    if not role and ANCHOR_SELECT_RE.search(text):
-        m = re.search(r"(01|02|03|1|2|3)", text)
-        anchor = m.group(1) if m else ""
-        if anchor in ("1", "2", "3"):
-            anchor = f"0{anchor}"
-        event["type"] = "anchor_selected"
-        event["payload"] = {"pass": True, "anchor_id": anchor}
-        return event
+    # 用户在关键门禁阶段的自然语言确认 -> 直接转 gate 事件
+    if not role:
+        if ANCHOR_SELECT_RE.search(text):
+            m = re.search(r"(01|02|03|1|2|3)", text)
+            anchor = m.group(1) if m else ""
+            if anchor in ("1", "2", "3"):
+                anchor = f"0{anchor}"
+            event["type"] = "anchor_selected"
+            event["payload"] = {"pass": True, "anchor_id": anchor}
+            return event
+        if STORYBOARD_CONFIRM_RE.search(text):
+            event["type"] = "storyboard_confirmed"
+            event["payload"] = {"pass": True}
+            return event
+        if PROMPT_APPROVE_RE.search(text):
+            event["type"] = "prompt_pack_approved"
+            event["payload"] = {"pass": True}
+            return event
 
     # Non-producer role talking about ACK counting/dispatch is a role-boundary violation.
     if role and any(w in text for w in CONTROL_WORDS):
