@@ -14,6 +14,28 @@ GATE_EVENT_MAP = {
 VIDEO_REF_RE = re.compile(r"(image_urls|ref(_|\s)?images?|参考图|对应分镜图|shot\d+\s*->\s*img\d+)", re.I)
 TASK_ID_RE = re.compile(r"task_id\s*=\s*([a-zA-Z0-9\-_]+)", re.I)
 URL_RE = re.compile(r"https?://\S+", re.I)
+LOCAL_PATH_RE = re.compile(r"(?:(?:/|~)[^\s;，。]+)")
+
+
+def _editor_delivery_ok(text: str) -> Tuple[bool, str]:
+    t = (text or "").strip()
+    if not t:
+        return False, "剪辑师交付缺少内容，请提供成片与打包信息。"
+
+    urls = URL_RE.findall(t)
+    has_discord_video = any(("discord" in u.lower() and ".mp4" in u.lower()) for u in urls)
+    if not has_discord_video:
+        return False, "剪辑师交付缺少 Discord 成片视频链接（.mp4）。"
+
+    has_zip = (".zip" in t.lower()) or ("压缩包" in t) or ("打包" in t)
+    if not has_zip:
+        return False, "剪辑师交付缺少素材压缩包信息（zip）。"
+
+    paths = LOCAL_PATH_RE.findall(t)
+    if len(paths) < 2:
+        return False, "剪辑师交付缺少本地路径：请至少提供成片路径 + 压缩包路径。"
+
+    return True, ""
 
 
 def _stage_for_index(workflow: Dict, idx: int | None) -> str:
@@ -342,15 +364,41 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
             actions.append({"type": "wait_notice", "text": "收到剪辑开工，进入等待窗口 W1。"})
 
         elif event.get("has_delivery"):
-            state["status"] = "REVIEWING"
-            actions.append({
-                "type": "review",
-                "text": f"收到 {role} 实物交付，进入验收。",
-                "source_role": role,
-                "source_text": str(event.get("text") or ""),
-            })
-            actions.extend(_mark_stage_delivery_gates(state, workflow))
-            actions.extend(_advance_step(state, workflow))
+            source_text = str(event.get("text") or "")
+            if role == "editor":
+                ok_delivery, reason = _editor_delivery_ok(source_text)
+                if not ok_delivery:
+                    state["status"] = "BLOCKED"
+                    actions.append({
+                        "type": "blocked",
+                        "text": f"阻塞：{reason}",
+                    })
+                    actions.append({
+                        "type": "handoff",
+                        "target_role": "editor",
+                        "meta": {"step": (state.get("step_index") or 0) + 1, "stage": _current_stage(state, workflow)},
+                        "text": "请补齐：1) Discord 成片视频；2) 全素材压缩包；3) 成片与压缩包本地路径。",
+                    })
+                else:
+                    state["status"] = "REVIEWING"
+                    actions.append({
+                        "type": "review",
+                        "text": f"收到 {role} 实物交付，进入验收。",
+                        "source_role": role,
+                        "source_text": source_text,
+                    })
+                    actions.extend(_mark_stage_delivery_gates(state, workflow))
+                    actions.extend(_advance_step(state, workflow))
+            else:
+                state["status"] = "REVIEWING"
+                actions.append({
+                    "type": "review",
+                    "text": f"收到 {role} 实物交付，进入验收。",
+                    "source_role": role,
+                    "source_text": source_text,
+                })
+                actions.extend(_mark_stage_delivery_gates(state, workflow))
+                actions.extend(_advance_step(state, workflow))
 
     elif et == "timer_tick" and status == "EDITOR_WAITING":
         timers = state.get("timers", {})

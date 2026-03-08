@@ -351,6 +351,67 @@ def test_editor_dispatch_includes_material_lock():
     assert "t_bgm_01" in out
 
 
+def test_editor_delivery_requires_discord_zip_and_paths():
+    run_id = "test-v14-014"
+    run(["python", str(CLI), "start", "--workflow", "marketing_video", "--run-id", run_id])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "p1",
+        "type": "lock_params",
+        "ts": 1700007000,
+        "payload": {
+            "topic": "品牌形象",
+            "model_preset": "default_last_verified",
+            "aspect_ratio": "16:9",
+            "reference_image_provided": False,
+            "duration_sec": 30,
+        }
+    }, ensure_ascii=False)])
+    for i, role in enumerate(["writer", "director", "vfx", "editor"], start=1):
+        run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+            "event_id": f"a{i}", "type": "role_ack", "role": role, "ts": 1700007000 + i
+        }, ensure_ascii=False)])
+
+    # fast-forward to editor dispatch
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"w1","type":"role_update","role":"writer","status":"已完成","has_delivery":True,"ts":1700007010}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v1","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 锚点图生成","ts":1700007020}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p1ok","type":"role_update","role":"producer","status":"已完成","text":"https://files.evolink.ai/a.png task_id=t_anchor","ts":1700007021}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"g1","type":"anchor_selected","ts":1700007022,"payload":{"pass":True,"anchor_id":"02"}}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"d1","type":"role_update","role":"director","status":"已完成","has_delivery":True,"ts":1700007030}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"w2","type":"role_update","role":"writer","status":"已完成","has_delivery":True,"ts":1700007040}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"gprompt","type":"prompt_pack_approved","ts":1700007041,"payload":{"pass":True}}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v2","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 分镜图生成","ts":1700007050}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p2ok","type":"role_update","role":"producer","status":"已完成","text":"https://cdn.discordapp.com/story1.png task_id=t_img_01","ts":1700007051}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"g2","type":"storyboard_confirmed","ts":1700007052,"payload":{"pass":True}}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v3","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 分镜视频生成 image_urls=[img01] shot01->img01","ts":1700007060}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p3ok","type":"role_update","role":"producer","status":"已完成","text":"https://cdn.discordapp.com/v1.mp4 task_id=t_vid_01","ts":1700007061}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v4","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 背景音乐生成","ts":1700007070}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p4ok","type":"role_update","role":"producer","status":"已完成","text":"bgm01 https://cdn.discordapp.com/bgm.mp3 task_id=t_bgm_01","ts":1700007071}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"map1","type":"duration_mapping","ts":1700007080,"payload":{"pass":True}}, ensure_ascii=False)])
+
+    out_block = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "ed_bad",
+        "type": "role_update",
+        "role": "editor",
+        "status": "已完成",
+        "has_delivery": True,
+        "text": "preview_cut_v1; master_cut_v1",
+        "ts": 1700007090
+    }, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_block
+    assert "缺少 Discord 成片视频" in out_block
+
+    out_ok = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "ed_ok",
+        "type": "role_update",
+        "role": "editor",
+        "status": "已完成",
+        "has_delivery": True,
+        "text": "https://cdn.discordapp.com/final.mp4 ; package.zip ; /Users/me/final/master.mp4 ; /Users/me/final/package.zip",
+        "ts": 1700007091
+    }, ensure_ascii=False)])
+    assert '"state": "DONE"' in out_ok
+
+
 def test_storyboard_confirm_auto_event():
     run_id = "test-v14-012"
     run(["python", str(CLI), "start", "--workflow", "marketing_video", "--run-id", run_id])
@@ -434,4 +495,5 @@ if __name__ == "__main__":
     test_handoff_mentions_on_gate_release()
     test_storyboard_confirm_auto_event()
     test_editor_dispatch_includes_material_lock()
+    test_editor_delivery_requires_discord_zip_and_paths()
     print("OK")
