@@ -12,6 +12,8 @@ GATE_EVENT_MAP = {
 }
 
 VIDEO_REF_RE = re.compile(r"(image_urls|ref(_|\s)?images?|参考图|对应分镜图|shot\d+\s*->\s*img\d+)", re.I)
+TASK_ID_RE = re.compile(r"task_id\s*=\s*([a-zA-Z0-9\-_]+)", re.I)
+URL_RE = re.compile(r"https?://\S+", re.I)
 
 
 def _stage_for_index(workflow: Dict, idx: int | None) -> str:
@@ -97,6 +99,8 @@ def _advance_step(state: Dict, workflow: Dict) -> List[dict]:
     state["status"] = "DISPATCHING"
     state["step_index"] = next_idx
     state["current_role"] = role
+    if role == "editor":
+        actions.append({"type": "material_lock", "text": _render_material_lock(state)})
     actions.append(_dispatch_action(role, next_idx, workflow))
     return actions
 
@@ -154,6 +158,48 @@ def _mark_stage_delivery_gates(state: Dict, workflow: Dict) -> List[dict]:
         actions.append({"type": "gate_update", "text": "素材齐套门禁：PASS（图/视频/音频已齐）。"})
 
     return actions
+
+
+def _extract_task_ids(text: str) -> List[str]:
+    return [m.group(1) for m in TASK_ID_RE.finditer(text or "")]
+
+
+def _extract_urls(text: str) -> List[str]:
+    return URL_RE.findall(text or "")
+
+
+def _save_producer_materials(state: Dict, stage: str, text: str, workflow: Dict) -> None:
+    mats = state.setdefault("materials", {})
+    task_ids = _extract_task_ids(text)
+    urls = _extract_urls(text)
+
+    if stage == "storyboard_videos":
+        if task_ids:
+            mats["video_task_ids"] = task_ids[:6]
+        if urls:
+            mats["video_urls"] = urls[:6]
+    elif stage == "bgm":
+        # single_bgm_output 模式只保留一个版本
+        single = bool((workflow.get("gates") or {}).get("single_bgm_output", False))
+        if task_ids:
+            mats["bgm_task_id"] = task_ids[0] if single else task_ids[-1]
+        if urls:
+            mats["bgm_url"] = urls[0] if single else urls[-1]
+
+
+def _render_material_lock(state: Dict) -> str:
+    mats = state.get("materials") or {}
+    videos = mats.get("video_task_ids") or []
+    bgm = mats.get("bgm_task_id") or "（待回填）"
+    lines = ["最终锁定素材清单："]
+    if videos:
+        for i, tid in enumerate(videos, start=1):
+            lines.append(f"- shot{i:02d}: {tid}")
+    else:
+        lines.append("- 分镜视频 task_id：待抓总回填")
+    lines.append(f"- BGM: {bgm}")
+    lines.append("- logo: 无（本轮不叠加）")
+    return "\n".join(lines)
 
 
 def _handle_gate_event(state: Dict, workflow: Dict, event: Dict) -> List[dict]:
@@ -267,12 +313,13 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
                     "text": "阻塞：抓总回传缺少可视化素材或 EvoLink 调用证据（job/task/call id 等），不放行。",
                 })
             else:
+                src = str(event.get("text") or "")
                 # BGM 阶段只保留单一输出，避免多个候选导致后续剪辑重复决策
                 if current_stage == "bgm" and bool(cfg.get("single_bgm_output", False)):
-                    src = str(event.get("text") or "")
                     # 粗粒度：发现多个 bgm 片段标签时给出警告（不阻塞流程）
                     if "bgm01" in src and "bgm02" in src:
                         actions.append({"type": "warning", "text": "提示：BGM 建议只保留单一输出，已检测到多候选。后续请固定一个版本。"})
+                _save_producer_materials(state, current_stage, src, workflow)
                 state.setdefault("runtime", {})["awaiting_producer_delivery"] = False
                 state["status"] = "REVIEWING"
                 actions.append({

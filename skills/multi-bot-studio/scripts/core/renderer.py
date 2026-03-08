@@ -94,6 +94,8 @@ def render_actions(actions: List[Dict], workflow: Dict) -> List[str]:
                 for u in urls:
                     # URL-only 行，供 sender 层转换为 media 消息（Discord 可视化素材）
                     lines.append(u)
+        elif t == "material_lock":
+            lines.append(a.get("text", ""))
         else:
             lines.append(a.get("text", ""))
     return [x for x in lines if x]
