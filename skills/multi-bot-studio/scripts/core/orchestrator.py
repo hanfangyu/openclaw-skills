@@ -19,23 +19,27 @@ OCR_CHECKED_RE = re.compile(r"ocr[_\s-]?checked\s*[:=]\s*(true|false|1|0)", re.I
 OCR_TEXT_RE = re.compile(r"ocr[_\s-]?(text|overlay)[_\s-]?(detected|found)?\s*[:=]\s*(true|false|1|0)", re.I)
 
 
-def _editor_delivery_ok(text: str) -> Tuple[bool, str]:
-    t = (text or "").strip()
-    if not t:
+def _editor_delivery_ok(event: Dict) -> Tuple[bool, str]:
+    t = str(event.get("text") or "").strip()
+    media_count = int(event.get("media_count") or 0)
+
+    if not t and media_count <= 0:
         return False, "剪辑师交付缺少内容，请提供成片与打包信息。"
 
+    # Discord 场景优先接受“已上传视频附件”信号；不再强依赖文本里出现 discord mp4 链接。
     urls = URL_RE.findall(t)
-    has_discord_video = any(("discord" in u.lower() and ".mp4" in u.lower()) for u in urls)
-    if not has_discord_video:
-        return False, "剪辑师交付缺少 Discord 成片视频链接（.mp4）。"
+    has_discord_video_link = any(("discord" in u.lower() and ".mp4" in u.lower()) for u in urls)
+    has_video_attachment = media_count > 0
+    if not (has_discord_video_link or has_video_attachment):
+        return False, "剪辑师交付缺少 Discord 成片视频（附件或链接）。"
 
     has_zip = (".zip" in t.lower()) or ("压缩包" in t) or ("打包" in t)
     if not has_zip:
         return False, "剪辑师交付缺少素材压缩包信息（zip）。"
 
     paths = LOCAL_PATH_RE.findall(t)
-    if len(paths) < 2:
-        return False, "剪辑师交付缺少本地路径：请至少提供成片路径 + 压缩包路径。"
+    if len(paths) < 1:
+        return False, "剪辑师交付缺少压缩包本地路径。"
 
     return True, ""
 
@@ -520,7 +524,7 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
         elif event.get("has_delivery"):
             source_text = str(event.get("text") or "")
             if role == "editor":
-                ok_delivery, reason = _editor_delivery_ok(source_text)
+                ok_delivery, reason = _editor_delivery_ok(event)
                 if not ok_delivery:
                     state["status"] = "BLOCKED"
                     actions.append({
