@@ -77,6 +77,10 @@ def render_actions(actions: List[Dict], workflow: Dict) -> List[str]:
             lines.append(f"{role_mention} 接棒提示：门禁已放行，请立即开始本棒（{stage or 'default'}）。")
         elif t == "dispatch":
             lines.extend(_render_dispatch(a, workflow))
+        elif t == "ack_request":
+            role = a.get("target_role", "")
+            role_mention = _role_label(workflow, role, "ack")
+            lines.append(f"{role_mention} 在线状态确认：请回复『ACK + 在线』。")
         elif t == "ack_progress":
             lines.append(a.get("text", ""))
         elif t == "wait_notice":

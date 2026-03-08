@@ -163,6 +163,15 @@ def _handle_param_lock(state: Dict, workflow: Dict, event: Dict) -> List[dict]:
     gates["four_questions_passed"] = True
     state["status"] = "ACK_WAIT"
     actions.append({"type": "param_lock_ok", "text": "四问锁参完成，进入 ACK_WAIT。"})
+
+    # 在线状态确认：逐个@需要接棒的角色，要求真实回 ACK。
+    for r in (state.get("ack", {}).get("required") or []):
+        actions.append({
+            "type": "ack_request",
+            "target_role": r,
+            "text": f"请 {r} 在线确认：回复『ACK + 在线』。",
+        })
+
     return actions
 
 
