@@ -82,7 +82,11 @@ def test_happy_path_and_gates():
     assert "vfx" in out_g2
 
     # storyboard videos request -> blocked, then producer executes -> dispatch bgm
-    out_s6 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v3","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 分镜视频生成","ts":1700001060}, ensure_ascii=False)])
+    out_s6_bad = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v3bad","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 分镜视频生成","ts":1700001060}, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_s6_bad
+    assert "缺少分镜图参考映射" in out_s6_bad
+
+    out_s6 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v3","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 分镜视频生成 image_urls=[img01,img02,img03,img04,img05,img06] shot01->img01 ... shot06->img06","ts":1700001061}, ensure_ascii=False)])
     assert '"state": "BLOCKED"' in out_s6
     out_p3 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p3ok","type":"role_update","role":"producer","status":"已完成","text":"https://cdn.discordapp.com/v1.mp4 call_id=call_301","ts":1700001061}, ensure_ascii=False)])
     assert '"state": "DISPATCHING"' in out_p3
@@ -90,8 +94,9 @@ def test_happy_path_and_gates():
     # bgm request -> blocked, then producer executes -> blocked before editor due duration mapping gate
     out_s7 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v4","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 背景音乐生成","ts":1700001070}, ensure_ascii=False)])
     assert '"state": "BLOCKED"' in out_s7
-    out_p4 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p4ok","type":"role_update","role":"producer","status":"已完成","text":"https://cdn.discordapp.com/bgm.mp3 evolink music job_id=job_401","ts":1700001071}, ensure_ascii=False)])
+    out_p4 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p4ok","type":"role_update","role":"producer","status":"已完成","text":"bgm01 https://cdn.discordapp.com/bgm.mp3 bgm02 https://cdn.discordapp.com/bgm2.mp3 evolink music job_id=job_401","ts":1700001071}, ensure_ascii=False)])
     assert '"state": "BLOCKED"' in out_p4
+    assert "BGM 建议只保留单一输出" in out_p4
 
     # pass duration mapping -> should resume to editor
     out_map = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"map1","type":"duration_mapping","ts":1700001080,"payload":{"pass":True}}, ensure_ascii=False)])

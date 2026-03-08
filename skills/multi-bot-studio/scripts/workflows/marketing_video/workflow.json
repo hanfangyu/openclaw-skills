@@ -25,7 +25,9 @@
     "require_storyboard_confirmed": true,
     "require_duration_mapping": true,
     "require_asset_delivery": true,
-    "producer_executes_evolink": true
+    "producer_executes_evolink": true,
+    "require_video_reference_images": true,
+    "single_bgm_output": true
   },
   "role_duties": {
     "writer": "负责品牌DNA与文案表达；与导演共同产出图/视频/音频提示词。",

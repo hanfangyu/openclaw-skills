@@ -1,4 +1,5 @@
 from __future__ import annotations
+import re
 from typing import Dict, List, Tuple
 
 
@@ -9,6 +10,8 @@ GATE_EVENT_MAP = {
     "storyboard_confirmed": "storyboard_confirmed",
     "assets_ready": "assets_ready",
 }
+
+VIDEO_REF_RE = re.compile(r"(image_urls|ref(_|\s)?images?|参考图|对应分镜图|shot\d+\s*->\s*img\d+)", re.I)
 
 
 def _stage_for_index(workflow: Dict, idx: int | None) -> str:
@@ -218,27 +221,40 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
         producer_stages = {"anchor_images", "storyboard_images", "storyboard_videos", "bgm"}
 
         if role == "vfx" and producer_exec and current_stage in producer_stages and rstatus == "已完成":
-            # vfx 在该模式下只需提交请求包，不做素材交付校验
-            state["status"] = "REVIEWING"
-            state.setdefault("runtime", {})["awaiting_producer_delivery"] = True
-            # 显式@抓总接棒执行，避免“看起来停住”
-            actions.append({
-                "type": "handoff",
-                "target_role": "producer",
-                "meta": {"step": (state.get("step_index") or 0) + 1, "stage": current_stage},
-                "text": "已收到请求包，请抓总立即执行EvoLink并回传可视化素材。",
-            })
-            actions.append({
-                "type": "review",
-                "text": f"收到 {role} 请求包，进入抓总执行EvoLink。",
-                "source_role": role,
-                "source_text": str(event.get("text") or ""),
-            })
-            actions.append({
-                "type": "blocked",
-                "text": "阻塞：等待抓总执行EvoLink并回传可视化素材+调用证据。",
-            })
-            state["status"] = "BLOCKED"
+            source_text = str(event.get("text") or "")
+            # 视频阶段强制要求“分镜图参考映射”声明，避免丢失 image_urls/reference
+            if (
+                current_stage == "storyboard_videos"
+                and bool(cfg.get("require_video_reference_images", False))
+                and not VIDEO_REF_RE.search(source_text)
+            ):
+                state["status"] = "BLOCKED"
+                actions.append({
+                    "type": "blocked",
+                    "text": "阻塞：第6棒请求包缺少分镜图参考映射（image_urls/ref），请补充后再执行。",
+                })
+            else:
+                # vfx 在该模式下只需提交请求包，不做素材交付校验
+                state["status"] = "REVIEWING"
+                state.setdefault("runtime", {})["awaiting_producer_delivery"] = True
+                # 显式@抓总接棒执行，避免“看起来停住”
+                actions.append({
+                    "type": "handoff",
+                    "target_role": "producer",
+                    "meta": {"step": (state.get("step_index") or 0) + 1, "stage": current_stage},
+                    "text": "已收到请求包，请抓总立即执行EvoLink并回传可视化素材。",
+                })
+                actions.append({
+                    "type": "review",
+                    "text": f"收到 {role} 请求包，进入抓总执行EvoLink。",
+                    "source_role": role,
+                    "source_text": source_text,
+                })
+                actions.append({
+                    "type": "blocked",
+                    "text": "阻塞：等待抓总执行EvoLink并回传可视化素材+调用证据。",
+                })
+                state["status"] = "BLOCKED"
 
         elif role == "producer" and producer_exec and current_stage in producer_stages and rstatus == "已完成":
             awaiting = bool((state.get("runtime") or {}).get("awaiting_producer_delivery", False))
@@ -251,6 +267,12 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
                     "text": "阻塞：抓总回传缺少可视化素材或 EvoLink 调用证据（job/task/call id 等），不放行。",
                 })
             else:
+                # BGM 阶段只保留单一输出，避免多个候选导致后续剪辑重复决策
+                if current_stage == "bgm" and bool(cfg.get("single_bgm_output", False)):
+                    src = str(event.get("text") or "")
+                    # 粗粒度：发现多个 bgm 片段标签时给出警告（不阻塞流程）
+                    if "bgm01" in src and "bgm02" in src:
+                        actions.append({"type": "warning", "text": "提示：BGM 建议只保留单一输出，已检测到多候选。后续请固定一个版本。"})
                 state.setdefault("runtime", {})["awaiting_producer_delivery"] = False
                 state["status"] = "REVIEWING"
                 actions.append({
