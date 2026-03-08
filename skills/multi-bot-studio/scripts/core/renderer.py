@@ -84,11 +84,18 @@ def render_actions(actions: List[Dict], workflow: Dict) -> List[str]:
         elif t == "ack_progress":
             lines.append(a.get("text", ""))
         elif t == "wait_notice":
-            lines.append("收到剪辑开工，进入等待窗口 W1=120s。")
+            role = a.get("target_role", "editor")
+            stage = a.get("meta", {}).get("stage", "editing")
+            role_mention = _role_label(workflow, role, stage)
+            lines.append(f"{role_mention} 收到剪辑开工，进入等待窗口 W1=120s。")
         elif t == "remind":
-            lines.append("W1到期提醒：请优先回传审片附件，随后补主版。")
+            role = a.get("target_role", "editor")
+            role_mention = _role_label(workflow, role, "editing")
+            lines.append(f"{role_mention} W1到期提醒：请优先回传审片附件，随后补主版。")
         elif t == "fallback_allowed":
-            lines.append("W2到期，允许兜底（需显式执行兜底动作）。")
+            role = a.get("target_role", "editor")
+            role_mention = _role_label(workflow, role, "editing")
+            lines.append(f"{role_mention} W2到期，允许兜底（需显式执行兜底动作）。")
         elif t == "review":
             lines.append(a.get("text", ""))
             source_role = a.get("source_role")

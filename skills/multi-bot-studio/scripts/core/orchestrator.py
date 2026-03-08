@@ -445,7 +445,12 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
                 "w1_sec": workflow.get("editor_wait", {}).get("w1_sec", 120),
                 "w2_sec": workflow.get("editor_wait", {}).get("w2_sec", 180),
             }
-            actions.append({"type": "wait_notice", "text": "收到剪辑开工，进入等待窗口 W1。"})
+            actions.append({
+                "type": "wait_notice",
+                "target_role": "editor",
+                "meta": {"step": (state.get("step_index") or 0) + 1, "stage": _current_stage(state, workflow)},
+                "text": "收到剪辑开工，进入等待窗口 W1。",
+            })
 
         elif event.get("has_delivery"):
             source_text = str(event.get("text") or "")
@@ -493,11 +498,21 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
 
         if elapsed >= w1 and not timers.get("w1_notified"):
             timers["w1_notified"] = True
-            actions.append({"type": "remind", "text": "W1到期提醒：请优先回传审片附件。"})
+            actions.append({
+                "type": "remind",
+                "target_role": "editor",
+                "meta": {"step": (state.get("step_index") or 0) + 1, "stage": _current_stage(state, workflow)},
+                "text": "W1到期提醒：请优先回传审片附件。",
+            })
 
         if elapsed >= (w1 + w2):
             state["status"] = "FALLBACK_ALLOWED"
-            actions.append({"type": "fallback_allowed", "text": "W2到期：允许兜底流程。"})
+            actions.append({
+                "type": "fallback_allowed",
+                "target_role": "editor",
+                "meta": {"step": (state.get("step_index") or 0) + 1, "stage": _current_stage(state, workflow)},
+                "text": "W2到期：允许兜底流程。",
+            })
 
     elif et == "role_violation":
         role = event.get("role") or "unknown"
