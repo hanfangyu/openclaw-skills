@@ -198,7 +198,15 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
         role = event.get("role")
         rstatus = event.get("status", "")
 
-        if role == "editor" and rstatus in ("执行中", "进行中") and not event.get("has_delivery"):
+        # vfx stage 必须既有素材也有 evolink 调用证据
+        if role == "vfx" and rstatus == "已完成" and not bool(event.get("vfx_ready", False)):
+            state["status"] = "BLOCKED"
+            actions.append({
+                "type": "blocked",
+                "text": "阻塞：VFX 回传缺少可视化素材或 EvoLink 调用证据（job/task/call id 等），不放行。",
+            })
+
+        elif role == "editor" and rstatus in ("执行中", "进行中") and not event.get("has_delivery"):
             state["status"] = "EDITOR_WAITING"
             state["timers"] = {
                 "wait_started_at": event.get("ts"),
