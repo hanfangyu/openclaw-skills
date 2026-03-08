@@ -15,6 +15,8 @@ VIDEO_REF_RE = re.compile(r"(image_urls|ref(_|\s)?images?|参考图|对应分镜
 TASK_ID_RE = re.compile(r"task_id\s*=\s*([a-zA-Z0-9\-_]+)", re.I)
 URL_RE = re.compile(r"https?://\S+", re.I)
 LOCAL_PATH_RE = re.compile(r"(?:(?:/|~)[^\s;，。]+)")
+OCR_CHECKED_RE = re.compile(r"ocr[_\s-]?checked\s*[:=]\s*(true|false|1|0)", re.I)
+OCR_TEXT_RE = re.compile(r"ocr[_\s-]?(text|overlay)[_\s-]?(detected|found)?\s*[:=]\s*(true|false|1|0)", re.I)
 
 
 def _editor_delivery_ok(text: str) -> Tuple[bool, str]:
@@ -202,6 +204,21 @@ def _extract_urls(text: str) -> List[str]:
     return URL_RE.findall(text or "")
 
 
+def _parse_bool_token(tok: str | None) -> bool:
+    if tok is None:
+        return False
+    return str(tok).strip().lower() in ("1", "true", "yes", "y")
+
+
+def _extract_ocr_flags(text: str) -> Tuple[bool | None, bool | None]:
+    t = text or ""
+    m_checked = OCR_CHECKED_RE.search(t)
+    m_text = OCR_TEXT_RE.search(t)
+    checked = _parse_bool_token(m_checked.group(1)) if m_checked else None
+    text_found = _parse_bool_token(m_text.group(2)) if m_text else None
+    return checked, text_found
+
+
 def _save_producer_materials(state: Dict, stage: str, text: str, workflow: Dict) -> None:
     mats = state.setdefault("materials", {})
     task_ids = _extract_task_ids(text)
@@ -348,6 +365,61 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
                 })
             else:
                 src = str(event.get("text") or "")
+
+                # storyboard_images 质检门禁：先 OCR 检查；若有文字仅允许一次重生，再由用户确认是否继续重生
+                if current_stage == "storyboard_images" and bool(cfg.get("require_clean_storyboard_frames", False)):
+                    checked, text_found = _extract_ocr_flags(src)
+                    qc = state.setdefault("runtime", {}).setdefault("storyboard_qc", {})
+                    if checked is None:
+                        state["status"] = "BLOCKED"
+                        actions.append({
+                            "type": "blocked",
+                            "text": "阻塞：分镜图需先做 OCR 检查；请回传 ocr_checked=true 与 ocr_text_detected=true/false。",
+                        })
+                        actions.append({
+                            "type": "handoff",
+                            "target_role": "producer",
+                            "meta": {"step": (state.get("step_index") or 0) + 1, "stage": current_stage},
+                            "text": "请先执行 OCR 质检再回传。",
+                        })
+                        state.setdefault("runtime", {})["awaiting_producer_delivery"] = True
+                        state.setdefault("history", []).append({"event": event, "status": state.get("status")})
+                        return state, actions
+
+                    if text_found is True:
+                        regen_count = int(qc.get("regen_count") or 0)
+                        if regen_count < 1:
+                            qc["regen_count"] = regen_count + 1
+                            state["status"] = "BLOCKED"
+                            actions.append({
+                                "type": "blocked",
+                                "text": "阻塞：OCR 检出分镜图含文字/参数叠加；请仅重生 1 次后再回传（避免无限消耗）。",
+                            })
+                            actions.append({
+                                "type": "handoff",
+                                "target_role": "producer",
+                                "meta": {"step": (state.get("step_index") or 0) + 1, "stage": current_stage},
+                                "text": "请执行一次重生（仅一次），并附 OCR 结果。",
+                            })
+                            state.setdefault("runtime", {})["awaiting_producer_delivery"] = True
+                            state.setdefault("history", []).append({"event": event, "status": state.get("status")})
+                            return state, actions
+                        else:
+                            state["status"] = "BLOCKED"
+                            actions.append({
+                                "type": "blocked",
+                                "text": "阻塞：OCR 二次仍检出文字；请用户确认是否继续重生（默认不再自动重生）。",
+                            })
+                            actions.append({
+                                "type": "handoff",
+                                "target_role": "producer",
+                                "meta": {"step": (state.get("step_index") or 0) + 1, "stage": current_stage},
+                                "text": "请向用户请求明确确认：是否继续重生分镜图。",
+                            })
+                            state.setdefault("runtime", {})["awaiting_producer_delivery"] = True
+                            state.setdefault("history", []).append({"event": event, "status": state.get("status")})
+                            return state, actions
+
                 # BGM 阶段只保留单一输出，避免多个候选导致后续剪辑重复决策
                 if current_stage == "bgm" and bool(cfg.get("single_bgm_output", False)):
                     # 粗粒度：发现多个 bgm 片段标签时给出警告（不阻塞流程）
