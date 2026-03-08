@@ -10,6 +10,7 @@ def _role_label(workflow: Dict, role: str) -> str:
 def _render_dispatch(a: Dict, workflow: Dict) -> List[str]:
     role = a.get("target_role", "")
     step = a.get("meta", {}).get("step", "?")
+    stage = a.get("meta", {}).get("stage", "")
     role_mention = _role_label(workflow, role)
 
     templates = (workflow.get("dispatch_templates") or {}).get(role)
@@ -21,11 +22,13 @@ def _render_dispatch(a: Dict, workflow: Dict) -> List[str]:
                     role=role,
                     role_mention=role_mention,
                     step=step,
+                    stage=stage,
                 )
             )
         return out
 
-    return [f"{role_mention} 第{step}棒开始执行。"]
+    stage_suffix = f"（{stage}）" if stage else ""
+    return [f"{role_mention} 第{step}棒{stage_suffix}开始执行。"]
 
 
 def render_actions(actions: List[Dict], workflow: Dict) -> List[str]:

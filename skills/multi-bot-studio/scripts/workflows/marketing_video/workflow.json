@@ -1,12 +1,32 @@
 {
   "name": "marketing_video",
   "roles": ["writer", "director", "vfx", "editor"],
-  "steps": ["writer", "director", "vfx", "editor"],
+  "steps": ["writer", "vfx", "director", "writer", "vfx", "vfx", "vfx", "editor"],
+  "step_stages": [
+    "brand_dna",
+    "anchor_images",
+    "prompt_pack_draft",
+    "prompt_pack_finalize",
+    "storyboard_images",
+    "storyboard_videos",
+    "bgm",
+    "editing"
+  ],
   "entry_state": "PLANNING",
   "gates": {
     "require_four_questions": true,
+    "require_brand_dna": true,
+    "require_anchor_selected": true,
+    "require_prompt_pack_approved": true,
+    "require_storyboard_confirmed": true,
     "require_duration_mapping": true,
     "require_asset_delivery": true
+  },
+  "role_duties": {
+    "writer": "负责品牌DNA与文案表达；与导演共同产出图/视频/音频提示词。",
+    "director": "负责镜头语法、分镜节奏、转场策略与提示词可执行性。",
+    "vfx": "被授权调用 EvoLink 生成图片/视频/音频素材并按门禁回传。",
+    "editor": "使用本地合成工具拼接全部素材并导出成片。"
   },
   "editor_wait": {"w1_sec": 120, "w2_sec": 180},
   "model_presets": {

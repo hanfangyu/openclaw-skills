@@ -38,17 +38,56 @@ def test_happy_path_and_gates():
             "event_id": f"a{i}", "type": "role_ack", "role": role, "ts": 1700001000 + i
         }, ensure_ascii=False)])
 
-    # progress to vfx complete; should block before editor if no duration mapping pass
-    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"w1","type":"role_update","role":"writer","status":"已完成","has_delivery":True,"ts":1700001010}, ensure_ascii=False)])
-    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"d1","type":"role_update","role":"director","status":"已完成","has_delivery":True,"ts":1700001020}, ensure_ascii=False)])
-    out_block = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v1","type":"role_update","role":"vfx","status":"已完成","has_delivery":True,"ts":1700001030}, ensure_ascii=False)])
-    assert '"state": "BLOCKED"' in out_block
+    # Step1 writer brand_dna delivery should auto-pass brand_dna gate and dispatch vfx(anchor_images)
+    out_s1 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"w1","type":"role_update","role":"writer","status":"已完成","has_delivery":True,"ts":1700001010}, ensure_ascii=False)])
+    assert '"state": "DISPATCHING"' in out_s1
+    assert "vfx" in out_s1
 
-    # pass duration mapping then retry vfx update
-    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"map1","type":"duration_mapping","ts":1700001040,"payload":{"pass":True}}, ensure_ascii=False)])
-    out_retry = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v1-retry","type":"role_update","role":"vfx","status":"已完成","has_delivery":True,"ts":1700001041}, ensure_ascii=False)])
-    assert '"state": "DISPATCHING"' in out_retry
-    assert "editor" in out_retry
+    # Step2 vfx anchor_images
+    out_s2 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v1","type":"role_update","role":"vfx","status":"已完成","has_delivery":True,"ts":1700001020}, ensure_ascii=False)])
+    # should block entering director until anchor_selected gate is set
+    assert '"state": "BLOCKED"' in out_s2
+
+    # pass anchor selection -> resume to director
+    out_anchor = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"g1","type":"anchor_selected","ts":1700001021,"payload":{"pass":True,"anchor_id":"A1"}}, ensure_ascii=False)])
+    assert '"state": "DISPATCHING"' in out_anchor
+    assert "director" in out_anchor
+
+    # director draft -> should block before writer finalize if prompt pack not approved
+    out_s3 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"d1","type":"role_update","role":"director","status":"已完成","has_delivery":True,"ts":1700001030}, ensure_ascii=False)])
+    assert '"state": "DISPATCHING"' in out_s3
+    assert "writer" in out_s3
+
+    # writer finalize prompt -> should block until prompt pack approved
+    out_s4 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"w2","type":"role_update","role":"writer","status":"已完成","has_delivery":True,"ts":1700001040}, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_s4
+
+    # producer approves prompt pack -> resume to vfx storyboard_images
+    out_g_prompt = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"g_prompt","type":"prompt_pack_approved","ts":1700001041,"payload":{"pass":True}}, ensure_ascii=False)])
+    assert '"state": "DISPATCHING"' in out_g_prompt
+    assert "vfx" in out_g_prompt
+
+    # storyboard images complete -> block on storyboard_confirmed
+    out_s5 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v2","type":"role_update","role":"vfx","status":"已完成","has_delivery":True,"ts":1700001050}, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_s5
+
+    # confirm storyboard -> resume vfx storyboard_videos
+    out_g2 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"g2","type":"storyboard_confirmed","ts":1700001051,"payload":{"pass":True}}, ensure_ascii=False)])
+    assert '"state": "DISPATCHING"' in out_g2
+    assert "vfx" in out_g2
+
+    # storyboard videos done -> dispatch bgm
+    out_s6 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v3","type":"role_update","role":"vfx","status":"已完成","has_delivery":True,"ts":1700001060}, ensure_ascii=False)])
+    assert '"state": "DISPATCHING"' in out_s6
+
+    # bgm done -> blocked before editor due duration mapping gate
+    out_s7 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v4","type":"role_update","role":"vfx","status":"已完成","has_delivery":True,"ts":1700001070}, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_s7
+
+    # pass duration mapping -> should resume to editor
+    out_map = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"map1","type":"duration_mapping","ts":1700001080,"payload":{"pass":True}}, ensure_ascii=False)])
+    assert '"state": "DISPATCHING"' in out_map
+    assert "editor" in out_map
 
 
 def test_emit_queue_and_dryrun():

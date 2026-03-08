@@ -89,6 +89,25 @@ def _with_default_target(outbound: list[dict], policy: dict, run_state: dict | N
     return fixed
 
 
+def _init_gates_from_workflow(wf: dict) -> dict:
+    cfg = wf.get("gates", {})
+    gates = {
+        "four_questions_passed": False,
+        "duration_mapping_passed": not cfg.get("require_duration_mapping", False),
+    }
+    if cfg.get("require_brand_dna"):
+        gates["brand_dna_passed"] = False
+    if cfg.get("require_anchor_selected"):
+        gates["anchor_selected"] = False
+    if cfg.get("require_prompt_pack_approved"):
+        gates["prompt_pack_approved"] = False
+    if cfg.get("require_storyboard_confirmed"):
+        gates["storyboard_confirmed"] = False
+    if cfg.get("require_asset_delivery"):
+        gates["assets_ready"] = False
+    return gates
+
+
 def cmd_start(base: Path, workflow: str, run_id: str, route_channel: str | None = None, route_target: str | None = None):
     wf = _load_workflow(base, workflow)
     rd = ensure_run(base, run_id)
@@ -106,10 +125,7 @@ def cmd_start(base: Path, workflow: str, run_id: str, route_channel: str | None 
         "current_role": None,
         "ack": {"required": wf["roles"], "received": []},
         "timers": {},
-        "gates": {
-            "four_questions_passed": False,
-            "duration_mapping_passed": not wf.get("gates", {}).get("require_duration_mapping", False)
-        },
+        "gates": _init_gates_from_workflow(wf),
         "routing": routing,
         "processed_event_ids": [],
         "history": []
@@ -201,10 +217,7 @@ def cmd_replay(base: Path, run_id: str):
         "current_role": None,
         "ack": {"required": wf["roles"], "received": []},
         "timers": {},
-        "gates": {
-            "four_questions_passed": False,
-            "duration_mapping_passed": not wf.get("gates", {}).get("require_duration_mapping", False)
-        },
+        "gates": _init_gates_from_workflow(wf),
         "processed_event_ids": [],
         "history": []
     }
