@@ -208,6 +208,33 @@ def test_anchor_auto_selection_event():
     assert "director" in out
 
 
+def test_media_export_from_url_lines():
+    run_id = "test-v14-009"
+    run(["python", str(CLI), "start", "--workflow", "collaboration", "--run-id", run_id])
+    # inject a URL-only outbound line and verify export converts to media payload
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "u1",
+        "type": "role_violation",
+        "role": "writer",
+        "ts": 1700002000
+    }, ensure_ascii=False)])
+
+    # append a URL-only line via another step output: using generic text through event not feasible here,
+    # so directly append through queue path by leveraging emit from outbound file content.
+    from pathlib import Path
+    import json as _json
+    out_path = Path(__file__).resolve().parents[2] / "runs" / run_id / "outbound.jsonl"
+    with out_path.open("a", encoding="utf-8") as f:
+        f.write(_json.dumps({"run_id": run_id, "channel": "discord", "target": "c1", "text": "https://cdn.discordapp.com/test.png"}, ensure_ascii=False) + "\n")
+
+    run(["python", str(CLI), "emit", "--run-id", run_id, "--mode", "queue"])
+    out = run(["python", str(CLI), "dispatch", "--run-id", run_id, "--mode", "export"])
+    data = json.loads(out)
+    assert data.get("count", 0) >= 1
+    payloads = data.get("payloads", [])
+    assert any((p.get("media") == "https://cdn.discordapp.com/test.png") for p in payloads)
+
+
 if __name__ == "__main__":
     test_happy_path_and_gates()
     test_emit_queue_and_dryrun()
@@ -217,4 +244,5 @@ if __name__ == "__main__":
     test_retry_requeue_and_stats()
     test_dedup()
     test_anchor_auto_selection_event()
+    test_media_export_from_url_lines()
     print("OK")

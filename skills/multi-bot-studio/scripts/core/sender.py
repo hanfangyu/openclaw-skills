@@ -39,13 +39,18 @@ def dispatch_outbound(run_dir: Path, mode: str = "dry_run", limit: int = 20) -> 
     if mode == "queue":
         with queue.open("a", encoding="utf-8") as f:
             for m in items:
+                text = str(m.get("text", "") or "")
                 payload = {
                     "dispatch_id": _dispatch_id(m),
                     "action": "send",
                     "channel": m.get("channel", "discord"),
                     "target": m.get("target"),
-                    "message": m.get("text", ""),
+                    "message": text,
                 }
+                # URL-only 行升级为媒体发送，优先在 Discord 做可视化素材展示
+                if text.startswith("http://") or text.startswith("https://"):
+                    payload["media"] = text
+                    payload["message"] = ""
                 f.write(json.dumps(payload, ensure_ascii=False) + "\n")
         return {"ok": True, "mode": mode, "count": len(items), "queue_path": str(queue)}
 
@@ -97,15 +102,21 @@ def dispatch_worker(run_dir: Path, mode: str = "dry_run", limit: int = 20) -> Di
     if mode == "export":
         payloads = []
         for row in pending:
-            payloads.append(
-                {
-                    "dispatch_id": row["dispatch_id"],
-                    "action": "send",
-                    "channel": row.get("channel", "discord"),
-                    "target": row.get("target"),
-                    "message": row.get("message", ""),
-                }
-            )
+            message = row.get("message", "")
+            payload = {
+                "dispatch_id": row["dispatch_id"],
+                "action": "send",
+                "channel": row.get("channel", "discord"),
+                "target": row.get("target"),
+                "message": message,
+            }
+            if row.get("media"):
+                payload["media"] = row.get("media")
+                payload["message"] = row.get("message", "")
+            elif isinstance(message, str) and (message.startswith("http://") or message.startswith("https://")):
+                payload["media"] = message
+                payload["message"] = ""
+            payloads.append(payload)
         return {"ok": True, "mode": mode, "count": len(payloads), "payloads": payloads}
 
     if mode == "commit":

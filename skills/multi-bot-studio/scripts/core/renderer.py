@@ -1,6 +1,13 @@
 from __future__ import annotations
+import re
 from typing import Dict, List
 
+
+URL_RE = re.compile(r"https?://\S+", re.I)
+
+
+def _extract_urls(text: str) -> List[str]:
+    return URL_RE.findall(text or "")
 
 ROLE_DISPLAY = {
     "writer": "编剧",
@@ -74,6 +81,13 @@ def render_actions(actions: List[Dict], workflow: Dict) -> List[str]:
             lines.append("W2到期，允许兜底（需显式执行兜底动作）。")
         elif t == "review":
             lines.append(a.get("text", ""))
+            source_role = a.get("source_role")
+            source_text = str(a.get("source_text") or "")
+            if source_role in ("vfx", "editor"):
+                urls = _extract_urls(source_text)
+                for u in urls:
+                    # URL-only 行，供 sender 层转换为 media 消息（Discord 可视化素材）
+                    lines.append(u)
         else:
             lines.append(a.get("text", ""))
     return [x for x in lines if x]

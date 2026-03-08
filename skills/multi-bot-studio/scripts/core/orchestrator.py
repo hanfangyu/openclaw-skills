@@ -210,7 +210,12 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
 
         elif event.get("has_delivery"):
             state["status"] = "REVIEWING"
-            actions.append({"type": "review", "text": f"收到 {role} 实物交付，进入验收。"})
+            actions.append({
+                "type": "review",
+                "text": f"收到 {role} 实物交付，进入验收。",
+                "source_role": role,
+                "source_text": str(event.get("text") or ""),
+            })
             actions.extend(_mark_stage_delivery_gates(state, workflow))
             actions.extend(_advance_step(state, workflow))
 
