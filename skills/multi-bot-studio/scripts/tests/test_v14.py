@@ -249,6 +249,7 @@ def test_producer_executes_evolink_gate():
     }, ensure_ascii=False)])
     assert '"state": "BLOCKED"' in out_vfx
     assert "等待抓总执行EvoLink" in out_vfx
+    assert "接棒提示" in out_vfx and "producer" in out_vfx
 
     # producer delivery without evidence -> still blocked
     out_p_bad = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({

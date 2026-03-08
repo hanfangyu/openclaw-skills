@@ -221,6 +221,13 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
             # vfx 在该模式下只需提交请求包，不做素材交付校验
             state["status"] = "REVIEWING"
             state.setdefault("runtime", {})["awaiting_producer_delivery"] = True
+            # 显式@抓总接棒执行，避免“看起来停住”
+            actions.append({
+                "type": "handoff",
+                "target_role": "producer",
+                "meta": {"step": (state.get("step_index") or 0) + 1, "stage": current_stage},
+                "text": "已收到请求包，请抓总立即执行EvoLink并回传可视化素材。",
+            })
             actions.append({
                 "type": "review",
                 "text": f"收到 {role} 请求包，进入抓总执行EvoLink。",
