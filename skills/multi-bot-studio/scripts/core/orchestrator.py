@@ -253,6 +253,46 @@ def _render_material_lock(state: Dict) -> str:
     return "\n".join(lines)
 
 
+def _apply_editor_wait_timeout(state: Dict, workflow: Dict, now_ts: int) -> List[dict]:
+    actions: List[dict] = []
+    if state.get("status") not in ("EDITOR_WAITING", "FALLBACK_ALLOWED"):
+        return actions
+
+    timers = state.get("timers", {})
+    start = int(timers.get("wait_started_at") or now_ts or 0)
+    elapsed = int(now_ts or 0) - start
+    w1 = int(timers.get("w1_sec", 120))
+    w2 = int(timers.get("w2_sec", 180))
+
+    if elapsed >= w1 and not timers.get("w1_notified"):
+        timers["w1_notified"] = True
+        actions.append({
+            "type": "remind",
+            "target_role": "editor",
+            "meta": {"step": (state.get("step_index") or 0) + 1, "stage": _current_stage(state, workflow)},
+            "text": "W1到期提醒：请优先回传审片附件。",
+        })
+
+    if elapsed >= (w1 + w2) and not timers.get("w2_notified"):
+        timers["w2_notified"] = True
+        state["status"] = "FALLBACK_ALLOWED"
+        actions.append({
+            "type": "fallback_allowed",
+            "target_role": "editor",
+            "meta": {"step": (state.get("step_index") or 0) + 1, "stage": _current_stage(state, workflow)},
+            "text": "W2到期：允许兜底流程。",
+        })
+        # 串行通知：同时明确 @抓总 接棒执行兜底，避免频道里停住
+        actions.append({
+            "type": "handoff",
+            "target_role": "producer",
+            "meta": {"step": (state.get("step_index") or 0) + 1, "stage": "editing_fallback"},
+            "text": "剪辑等待超时，抓总请立即接棒执行兜底导出，并回传成片与打包。",
+        })
+
+    return actions
+
+
 def _handle_gate_event(state: Dict, workflow: Dict, event: Dict) -> List[dict]:
     actions: List[dict] = []
     et = event.get("type")
@@ -276,6 +316,10 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
     actions: List[dict] = []
     status = state.get("status")
     et = event.get("type")
+
+    # Discord 侧可能没有稳定的定时器心跳；当任意事件到来时，顺便推进 editor 等待超时状态。
+    if et != "timer_tick" and status in ("EDITOR_WAITING", "FALLBACK_ALLOWED"):
+        actions.extend(_apply_editor_wait_timeout(state, workflow, int(event.get("ts") or 0)))
 
     if et == "lock_params":
         actions.extend(_handle_param_lock(state, workflow, event))
@@ -489,30 +533,8 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
                 actions.extend(_mark_stage_delivery_gates(state, workflow))
                 actions.extend(_advance_step(state, workflow))
 
-    elif et == "timer_tick" and status == "EDITOR_WAITING":
-        timers = state.get("timers", {})
-        start = int(timers.get("wait_started_at") or event.get("ts") or 0)
-        elapsed = int(event.get("ts") or 0) - start
-        w1 = int(timers.get("w1_sec", 120))
-        w2 = int(timers.get("w2_sec", 180))
-
-        if elapsed >= w1 and not timers.get("w1_notified"):
-            timers["w1_notified"] = True
-            actions.append({
-                "type": "remind",
-                "target_role": "editor",
-                "meta": {"step": (state.get("step_index") or 0) + 1, "stage": _current_stage(state, workflow)},
-                "text": "W1到期提醒：请优先回传审片附件。",
-            })
-
-        if elapsed >= (w1 + w2):
-            state["status"] = "FALLBACK_ALLOWED"
-            actions.append({
-                "type": "fallback_allowed",
-                "target_role": "editor",
-                "meta": {"step": (state.get("step_index") or 0) + 1, "stage": _current_stage(state, workflow)},
-                "text": "W2到期：允许兜底流程。",
-            })
+    elif et == "timer_tick" and status in ("EDITOR_WAITING", "FALLBACK_ALLOWED"):
+        actions.extend(_apply_editor_wait_timeout(state, workflow, int(event.get("ts") or 0)))
 
     elif et == "role_violation":
         role = event.get("role") or "unknown"
