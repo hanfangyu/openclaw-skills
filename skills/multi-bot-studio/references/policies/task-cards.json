@@ -53,7 +53,7 @@
     "vfx": [
       "{role_mention} 第{step}棒（视效/{stage}）：你负责素材规范审核与执行请求编排（不直接调用EvoLink）。",
       "- anchor_images：默认提交3张锚点图生成请求包（prompt+参数+验收标准）",
-      "- storyboard_images：提交分镜图生成请求包",
+      "- storyboard_images：提交分镜图生成请求包（必须含 no-text/no-parameter-overlay 负面约束）",
       "- storyboard_videos：提交分镜视频生成请求包（必须声明对应分镜图参考映射 image_urls/ref）",
       "- bgm：提交背景音乐生成请求包",
       "回传格式：已完成 + 请求包 + 风险点；抓总将统一执行EvoLink并回传可视化素材"

@@ -86,7 +86,10 @@ def _gate_check_for_next_step(state: Dict, workflow: Dict, next_idx: int) -> Tup
         return False, "提示词包未确认（prompt_pack_approved=false）"
 
     if stage == "storyboard_videos" and cfg.get("require_storyboard_confirmed") and not g.get("storyboard_confirmed"):
-        return False, "分镜图未确认（storyboard_confirmed=false）"
+        msg = "分镜图未确认（storyboard_confirmed=false）"
+        if cfg.get("require_clean_storyboard_frames"):
+            msg += "；请先检查并确认无参数文字叠加/水印"
+        return False, msg
 
     if role == "editor":
         if not _duration_gate_ok(state, workflow):
