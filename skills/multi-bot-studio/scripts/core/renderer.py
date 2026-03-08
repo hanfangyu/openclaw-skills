@@ -16,6 +16,10 @@ def _should_use_mention(workflow: Dict, stage: str) -> bool:
     mode = policy.get("mode", "allow")
     if mode == "allow":
         return True
+    if mode == "single_target":
+        # dispatch 行只包含当前 target_role，因此这里允许单点 @。
+        # 该模式用于避免“挨个@所有bot”，但保留“按棒次@指定bot”的触发能力。
+        return True
     if mode == "suppress":
         allowed = set(policy.get("allow_per_role_mention_stages") or [])
         return stage in allowed

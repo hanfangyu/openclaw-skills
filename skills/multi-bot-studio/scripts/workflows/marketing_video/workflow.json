@@ -14,8 +14,8 @@
   ],
   "entry_state": "PLANNING",
   "mention_policy": {
-    "mode": "suppress",
-    "allow_per_role_mention_stages": ["presence"]
+    "mode": "single_target",
+    "notes": "仅允许当前棒次目标角色的单点@；禁止挨个@所有bot催办"
   },
   "gates": {
     "require_four_questions": true,
