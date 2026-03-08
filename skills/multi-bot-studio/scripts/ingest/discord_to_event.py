@@ -1,4 +1,5 @@
 from __future__ import annotations
+import re
 from typing import Dict
 
 ROLE_MAP = {
@@ -7,6 +8,8 @@ ROLE_MAP = {
     "1479051077096833190": "vfx",
     "1479051272190693539": "editor",
 }
+
+ANCHOR_SELECT_RE = re.compile(r"(主锚点|选择|选定).*(01|02|03|1|2|3)", re.I)
 
 CONTROL_WORDS = (
     "统计 ACK",
@@ -36,7 +39,18 @@ def message_to_event(message: Dict) -> Dict:
         "text": text,
         "ts": ts,
         "media_count": int(message.get("media_count") or 0),
+        "sender_id": sender_id,
     }
+
+    # 用户在锚点阶段手动选择编号 -> 直接转 gate 事件
+    if not role and ANCHOR_SELECT_RE.search(text):
+        m = re.search(r"(01|02|03|1|2|3)", text)
+        anchor = m.group(1) if m else ""
+        if anchor in ("1", "2", "3"):
+            anchor = f"0{anchor}"
+        event["type"] = "anchor_selected"
+        event["payload"] = {"pass": True, "anchor_id": anchor}
+        return event
 
     # Non-producer role talking about ACK counting/dispatch is a role-boundary violation.
     if role and any(w in text for w in CONTROL_WORDS):

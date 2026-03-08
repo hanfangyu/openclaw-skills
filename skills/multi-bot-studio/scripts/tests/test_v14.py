@@ -174,6 +174,40 @@ def test_dedup():
     assert '"dedup": true' in out2
 
 
+def test_anchor_auto_selection_event():
+    run_id = "test-v14-008"
+    run(["python", str(CLI), "start", "--workflow", "marketing_video", "--run-id", run_id])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "p1",
+        "type": "lock_params",
+        "ts": 1700001000,
+        "payload": {
+            "topic": "品牌形象",
+            "model_preset": "default_last_verified",
+            "aspect_ratio": "16:9",
+            "reference_image_provided": False,
+            "duration_sec": 30,
+        }
+    }, ensure_ascii=False)])
+    for i, role in enumerate(["writer", "director", "vfx", "editor"], start=1):
+        run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+            "event_id": f"a{i}", "type": "role_ack", "role": role, "ts": 1700001000 + i
+        }, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"w1","type":"role_update","role":"writer","status":"已完成","has_delivery":True,"ts":1700001010}, ensure_ascii=False)])
+    out_block = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v1","type":"role_update","role":"vfx","status":"已完成","has_delivery":True,"ts":1700001020}, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_block
+
+    # user selects anchor -> should resume to director
+    out = run(["python", str(CLI), "ingest-discord", "--run-id", run_id, "--message-json", json.dumps({
+        "message_id": "m-anchor-1",
+        "sender_id": "1089470658276229140",
+        "text": "主锚点=02",
+        "timestamp": 1700001021
+    }, ensure_ascii=False)])
+    assert '"state": "DISPATCHING"' in out
+    assert "director" in out
+
+
 if __name__ == "__main__":
     test_happy_path_and_gates()
     test_emit_queue_and_dryrun()
@@ -182,4 +216,5 @@ if __name__ == "__main__":
     test_replay_summary()
     test_retry_requeue_and_stats()
     test_dedup()
+    test_anchor_auto_selection_event()
     print("OK")
