@@ -105,6 +105,11 @@ def render_actions(actions: List[Dict], workflow: Dict) -> List[str]:
                 for u in urls:
                     # URL-only 行，供 sender 层转换为 media 消息（Discord 可视化素材）
                     lines.append(u)
+        elif t == "editor_require_delivery":
+            role = a.get("target_role", "editor")
+            stage = a.get("meta", {}).get("stage", "editing")
+            role_mention = _role_label(workflow, role, stage)
+            lines.append(f"{role_mention} {a.get('text','请按模板回传四项交付。')}")
         elif t == "material_lock":
             lines.append(a.get("text", ""))
         else:

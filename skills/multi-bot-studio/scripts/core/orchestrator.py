@@ -482,10 +482,12 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
                 actions.extend(_advance_step(state, workflow))
 
         elif role == "editor" and rstatus in ("执行中", "进行中") and not event.get("has_delivery"):
-            state["status"] = "EDITOR_WAITING"
+            prev = state.get("status")
+            state["status"] = "FALLBACK_ALLOWED" if prev == "FALLBACK_ALLOWED" else "EDITOR_WAITING"
             state["timers"] = {
-                "wait_started_at": event.get("ts"),
-                "w1_notified": False,
+                "wait_started_at": event.get("ts") or (state.get("timers") or {}).get("wait_started_at"),
+                "w1_notified": False if prev != "FALLBACK_ALLOWED" else bool((state.get("timers") or {}).get("w1_notified", False)),
+                "w2_notified": bool((state.get("timers") or {}).get("w2_notified", False)),
                 "w1_sec": workflow.get("editor_wait", {}).get("w1_sec", 120),
                 "w2_sec": workflow.get("editor_wait", {}).get("w2_sec", 180),
             }
@@ -494,6 +496,25 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
                 "target_role": "editor",
                 "meta": {"step": (state.get("step_index") or 0) + 1, "stage": _current_stage(state, workflow)},
                 "text": "收到剪辑开工，进入等待窗口 W1。",
+            })
+            actions.append({
+                "type": "editor_require_delivery",
+                "target_role": "editor",
+                "meta": {"step": (state.get("step_index") or 0) + 1, "stage": _current_stage(state, workflow)},
+                "text": "请直接回传四项交付：.mp4、.zip、成片本地路径、压缩包本地路径（含风险/阻塞）。",
+            })
+
+        elif role == "editor" and rstatus in ("已完成", "完成") and not event.get("has_delivery"):
+            state["status"] = "BLOCKED"
+            actions.append({
+                "type": "blocked",
+                "text": "阻塞：剪辑师仅回传了状态，缺少实物四项交付。",
+            })
+            actions.append({
+                "type": "editor_require_delivery",
+                "target_role": "editor",
+                "meta": {"step": (state.get("step_index") or 0) + 1, "stage": _current_stage(state, workflow)},
+                "text": "请立即补齐：.mp4、.zip、成片本地路径、压缩包本地路径（含风险/阻塞）。",
             })
 
         elif event.get("has_delivery"):
