@@ -13,6 +13,10 @@
     "editing"
   ],
   "entry_state": "PLANNING",
+  "mention_policy": {
+    "mode": "suppress",
+    "allow_per_role_mention_stages": ["presence"]
+  },
   "gates": {
     "require_four_questions": true,
     "require_brand_dna": true,

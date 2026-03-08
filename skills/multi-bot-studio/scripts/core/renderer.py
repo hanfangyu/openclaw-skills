@@ -2,16 +2,39 @@ from __future__ import annotations
 from typing import Dict, List
 
 
-def _role_label(workflow: Dict, role: str) -> str:
+ROLE_DISPLAY = {
+    "writer": "编剧",
+    "director": "导演",
+    "vfx": "视效师",
+    "editor": "剪辑师",
+    "producer": "抓总",
+}
+
+
+def _should_use_mention(workflow: Dict, stage: str) -> bool:
+    policy = workflow.get("mention_policy") or {}
+    mode = policy.get("mode", "allow")
+    if mode == "allow":
+        return True
+    if mode == "suppress":
+        allowed = set(policy.get("allow_per_role_mention_stages") or [])
+        return stage in allowed
+    return True
+
+
+def _role_label(workflow: Dict, role: str, stage: str = "") -> str:
     mentions = workflow.get("role_mentions", {})
-    return mentions.get(role) or role
+    mention = mentions.get(role)
+    if mention and _should_use_mention(workflow, stage):
+        return mention
+    return ROLE_DISPLAY.get(role, role)
 
 
 def _render_dispatch(a: Dict, workflow: Dict) -> List[str]:
     role = a.get("target_role", "")
     step = a.get("meta", {}).get("step", "?")
     stage = a.get("meta", {}).get("stage", "")
-    role_mention = _role_label(workflow, role)
+    role_mention = _role_label(workflow, role, stage)
 
     templates = (workflow.get("dispatch_templates") or {}).get(role)
     if templates:
