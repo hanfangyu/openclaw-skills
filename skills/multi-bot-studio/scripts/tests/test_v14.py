@@ -43,13 +43,16 @@ def test_happy_path_and_gates():
     assert '"state": "DISPATCHING"' in out_s1
     assert "vfx" in out_s1
 
-    # Step2 vfx anchor_images
-    out_s2 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v1","type":"role_update","role":"vfx","status":"已完成","text":"asset_ids: evl_anchor_01 https://files.evolink.ai/a.png job_id=job_123","ts":1700001020}, ensure_ascii=False)])
-    # should block entering director until anchor_selected gate is set
+    # Step2 vfx anchor_images request package -> blocked waiting producer execution
+    out_s2 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v1","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 锚点图prompt+参数","ts":1700001020}, ensure_ascii=False)])
     assert '"state": "BLOCKED"' in out_s2
 
+    # producer executes evolink and returns assets+evidence -> still blocked until user anchor selection
+    out_p1 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p1ok","type":"role_update","role":"producer","status":"已完成","text":"https://files.evolink.ai/a.png job_id=job_123","ts":1700001021}, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_p1
+
     # pass anchor selection -> resume to director
-    out_anchor = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"g1","type":"anchor_selected","ts":1700001021,"payload":{"pass":True,"anchor_id":"A1"}}, ensure_ascii=False)])
+    out_anchor = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"g1","type":"anchor_selected","ts":1700001022,"payload":{"pass":True,"anchor_id":"A1"}}, ensure_ascii=False)])
     assert '"state": "DISPATCHING"' in out_anchor
     assert "director" in out_anchor
 
@@ -67,22 +70,28 @@ def test_happy_path_and_gates():
     assert '"state": "DISPATCHING"' in out_g_prompt
     assert "vfx" in out_g_prompt
 
-    # storyboard images complete -> block on storyboard_confirmed
-    out_s5 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v2","type":"role_update","role":"vfx","status":"已完成","text":"asset_ids: evl_story_01 https://cdn.discordapp.com/story1.png task_id=task_201","ts":1700001050}, ensure_ascii=False)])
+    # storyboard images request -> blocked, then producer executes -> blocked on storyboard_confirmed gate
+    out_s5 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v2","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 分镜图生成","ts":1700001050}, ensure_ascii=False)])
     assert '"state": "BLOCKED"' in out_s5
+    out_p2 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p2ok","type":"role_update","role":"producer","status":"已完成","text":"https://cdn.discordapp.com/story1.png task_id=task_201","ts":1700001051}, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_p2
 
     # confirm storyboard -> resume vfx storyboard_videos
-    out_g2 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"g2","type":"storyboard_confirmed","ts":1700001051,"payload":{"pass":True}}, ensure_ascii=False)])
+    out_g2 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"g2","type":"storyboard_confirmed","ts":1700001052,"payload":{"pass":True}}, ensure_ascii=False)])
     assert '"state": "DISPATCHING"' in out_g2
     assert "vfx" in out_g2
 
-    # storyboard videos done -> dispatch bgm
-    out_s6 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v3","type":"role_update","role":"vfx","status":"已完成","text":"asset_ids: evl_video_01 https://cdn.discordapp.com/v1.mp4 call_id=call_301","ts":1700001060}, ensure_ascii=False)])
-    assert '"state": "DISPATCHING"' in out_s6
+    # storyboard videos request -> blocked, then producer executes -> dispatch bgm
+    out_s6 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v3","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 分镜视频生成","ts":1700001060}, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_s6
+    out_p3 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p3ok","type":"role_update","role":"producer","status":"已完成","text":"https://cdn.discordapp.com/v1.mp4 call_id=call_301","ts":1700001061}, ensure_ascii=False)])
+    assert '"state": "DISPATCHING"' in out_p3
 
-    # bgm done -> blocked before editor due duration mapping gate
-    out_s7 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v4","type":"role_update","role":"vfx","status":"已完成","text":"asset_ids: evl_audio_01 https://cdn.discordapp.com/bgm.mp3 evolink music job_id=job_401","ts":1700001070}, ensure_ascii=False)])
+    # bgm request -> blocked, then producer executes -> blocked before editor due duration mapping gate
+    out_s7 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v4","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 背景音乐生成","ts":1700001070}, ensure_ascii=False)])
     assert '"state": "BLOCKED"' in out_s7
+    out_p4 = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p4ok","type":"role_update","role":"producer","status":"已完成","text":"https://cdn.discordapp.com/bgm.mp3 evolink music job_id=job_401","ts":1700001071}, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_p4
 
     # pass duration mapping -> should resume to editor
     out_map = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"map1","type":"duration_mapping","ts":1700001080,"payload":{"pass":True}}, ensure_ascii=False)])
@@ -208,7 +217,7 @@ def test_anchor_auto_selection_event():
     assert "director" in out
 
 
-def test_vfx_requires_evolink_evidence():
+def test_producer_executes_evolink_gate():
     run_id = "test-v14-010"
     run(["python", str(CLI), "start", "--workflow", "marketing_video", "--run-id", run_id])
     run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
@@ -229,17 +238,41 @@ def test_vfx_requires_evolink_evidence():
         }, ensure_ascii=False)])
     run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"w1","type":"role_update","role":"writer","status":"已完成","has_delivery":True,"ts":1700003010}, ensure_ascii=False)])
 
-    # has image/media but no evolink evidence -> blocked with explicit reason
-    out = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+    # vfx in producer-exec mode submits request package -> blocked waiting producer execution
+    out_vfx = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
         "event_id": "v1",
         "type": "role_update",
         "role": "vfx",
         "status": "已完成",
-        "text": "asset_ids: anchor_77 https://cdn.discordapp.com/a.png",
+        "text": "请求包：锚点图生成 prompt + 参数",
         "ts": 1700003020
     }, ensure_ascii=False)])
-    assert '"state": "BLOCKED"' in out
-    assert "EvoLink 调用证据" in out
+    assert '"state": "BLOCKED"' in out_vfx
+    assert "等待抓总执行EvoLink" in out_vfx
+
+    # producer delivery without evidence -> still blocked
+    out_p_bad = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "p-bad",
+        "type": "role_update",
+        "role": "producer",
+        "status": "已完成",
+        "text": "已执行，见上",
+        "ts": 1700003021
+    }, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_p_bad
+    assert "抓总回传缺少可视化素材或 EvoLink 调用证据" in out_p_bad
+
+    # producer delivery with media + evidence -> pass (still blocked on anchor selection gate)
+    out_p_ok = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "p-ok",
+        "type": "role_update",
+        "role": "producer",
+        "status": "已完成",
+        "text": "https://files.evolink.ai/anchor01.png job_id=job_998",
+        "ts": 1700003022
+    }, ensure_ascii=False)])
+    assert '"state": "BLOCKED"' in out_p_ok
+    assert "未完成锚点图选择" in out_p_ok
 
 
 def test_media_export_from_url_lines():
@@ -279,5 +312,5 @@ if __name__ == "__main__":
     test_dedup()
     test_anchor_auto_selection_event()
     test_media_export_from_url_lines()
-    test_vfx_requires_evolink_evidence()
+    test_producer_executes_evolink_gate()
     print("OK")

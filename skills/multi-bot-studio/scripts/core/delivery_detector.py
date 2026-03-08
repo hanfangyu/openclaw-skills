@@ -44,13 +44,13 @@ def normalize_event(event: Dict) -> Dict:
         role = out.get("role")
         if role == "editor":
             out["has_delivery"] = detect_delivery(out)
-        elif role in ("writer", "director") and out.get("status") == "已完成":
+        elif role in ("writer", "director", "vfx") and out.get("status") == "已完成":
             out["has_delivery"] = True
-        elif role == "vfx" and out.get("status") == "已完成":
-            # 对 VFX 不信任外部直接传入 has_delivery，强制按素材与证据重算
+        elif role == "producer" and out.get("status") == "已完成":
+            # 抓总统一执行 Evolink：必须回传素材+调用证据
             calc = dict(out)
             calc["has_delivery"] = False
             out["has_delivery"] = detect_delivery(calc)
             out["evolink_evidence"] = detect_evolink_evidence(out)
-            out["vfx_ready"] = bool(out.get("has_delivery") and out.get("evolink_evidence"))
+            out["producer_ready"] = bool(out.get("has_delivery") and out.get("evolink_evidence"))
     return out

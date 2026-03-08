@@ -194,17 +194,56 @@ def apply_event(state: Dict, workflow: Dict, event: Dict) -> Tuple[Dict, List[di
             state["current_role"] = first
             actions.append(_dispatch_action(first, 0, workflow))
 
-    elif et == "role_update" and state.get("current_role") == event.get("role"):
+    elif et == "role_update" and (
+        state.get("current_role") == event.get("role")
+        or event.get("role") == "producer"
+    ):
         role = event.get("role")
         rstatus = event.get("status", "")
 
-        # vfx stage 必须既有素材也有 evolink 调用证据
-        if role == "vfx" and rstatus == "已完成" and not bool(event.get("vfx_ready", False)):
-            state["status"] = "BLOCKED"
+        # producer 统一执行 Evolink 的阶段，必须既有素材也有调用证据
+        cfg = workflow.get("gates", {})
+        producer_exec = bool(cfg.get("producer_executes_evolink", False))
+        current_stage = _current_stage(state, workflow)
+        producer_stages = {"anchor_images", "storyboard_images", "storyboard_videos", "bgm"}
+
+        if role == "vfx" and producer_exec and current_stage in producer_stages and rstatus == "已完成":
+            # vfx 在该模式下只需提交请求包，不做素材交付校验
+            state["status"] = "REVIEWING"
+            state.setdefault("runtime", {})["awaiting_producer_delivery"] = True
+            actions.append({
+                "type": "review",
+                "text": f"收到 {role} 请求包，进入抓总执行EvoLink。",
+                "source_role": role,
+                "source_text": str(event.get("text") or ""),
+            })
             actions.append({
                 "type": "blocked",
-                "text": "阻塞：VFX 回传缺少可视化素材或 EvoLink 调用证据（job/task/call id 等），不放行。",
+                "text": "阻塞：等待抓总执行EvoLink并回传可视化素材+调用证据。",
             })
+            state["status"] = "BLOCKED"
+
+        elif role == "producer" and producer_exec and current_stage in producer_stages and rstatus == "已完成":
+            awaiting = bool((state.get("runtime") or {}).get("awaiting_producer_delivery", False))
+            if not awaiting:
+                actions.append({"type": "noop", "text": "忽略：当前阶段未等待抓总EvoLink交付。"})
+            elif not bool(event.get("producer_ready", False)):
+                state["status"] = "BLOCKED"
+                actions.append({
+                    "type": "blocked",
+                    "text": "阻塞：抓总回传缺少可视化素材或 EvoLink 调用证据（job/task/call id 等），不放行。",
+                })
+            else:
+                state.setdefault("runtime", {})["awaiting_producer_delivery"] = False
+                state["status"] = "REVIEWING"
+                actions.append({
+                    "type": "review",
+                    "text": "收到抓总EvoLink实物交付，进入验收。",
+                    "source_role": role,
+                    "source_text": str(event.get("text") or ""),
+                })
+                actions.extend(_mark_stage_delivery_gates(state, workflow))
+                actions.extend(_advance_step(state, workflow))
 
         elif role == "editor" and rstatus in ("执行中", "进行中") and not event.get("has_delivery"):
             state["status"] = "EDITOR_WAITING"

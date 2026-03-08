@@ -3,6 +3,7 @@ import re
 from typing import Dict
 
 ROLE_MAP = {
+    "1479001609127067720": "producer",
     "1479043365684121651": "writer",
     "1479044195233562657": "director",
     "1479051077096833190": "vfx",
