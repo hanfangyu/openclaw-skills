@@ -69,7 +69,13 @@ def render_actions(actions: List[Dict], workflow: Dict) -> List[str]:
     lines: List[str] = []
     for a in actions:
         t = a.get("type")
-        if t == "dispatch":
+        if t == "handoff":
+            # handoff 也必须显式@下一棒角色
+            role = a.get("target_role", "")
+            stage = a.get("meta", {}).get("stage", "")
+            role_mention = _role_label(workflow, role, stage)
+            lines.append(f"{role_mention} 接棒提示：门禁已放行，请立即开始本棒（{stage or 'default'}）。")
+        elif t == "dispatch":
             lines.extend(_render_dispatch(a, workflow))
         elif t == "ack_progress":
             lines.append(a.get("text", ""))

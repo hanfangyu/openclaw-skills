@@ -275,6 +275,34 @@ def test_producer_executes_evolink_gate():
     assert "未完成锚点图选择" in out_p_ok
 
 
+def test_handoff_mentions_on_gate_release():
+    run_id = "test-v14-011"
+    run(["python", str(CLI), "start", "--workflow", "marketing_video", "--run-id", run_id])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "p1",
+        "type": "lock_params",
+        "ts": 1700004000,
+        "payload": {
+            "topic": "品牌形象",
+            "model_preset": "default_last_verified",
+            "aspect_ratio": "16:9",
+            "reference_image_provided": False,
+            "duration_sec": 30,
+        }
+    }, ensure_ascii=False)])
+    for i, role in enumerate(["writer", "director", "vfx", "editor"], start=1):
+        run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+            "event_id": f"a{i}", "type": "role_ack", "role": role, "ts": 1700004000 + i
+        }, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"w1","type":"role_update","role":"writer","status":"已完成","has_delivery":True,"ts":1700004010}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"v1","type":"role_update","role":"vfx","status":"已完成","text":"请求包: 锚点图生成","ts":1700004020}, ensure_ascii=False)])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"p1ok","type":"role_update","role":"producer","status":"已完成","text":"https://files.evolink.ai/a.png job_id=job_123","ts":1700004021}, ensure_ascii=False)])
+
+    out = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({"event_id":"g1","type":"anchor_selected","ts":1700004022,"payload":{"pass":True,"anchor_id":"02"}}, ensure_ascii=False)])
+    assert "接棒提示" in out
+    assert "director" in out
+
+
 def test_media_export_from_url_lines():
     run_id = "test-v14-009"
     run(["python", str(CLI), "start", "--workflow", "collaboration", "--run-id", run_id])
@@ -313,4 +341,5 @@ if __name__ == "__main__":
     test_anchor_auto_selection_event()
     test_media_export_from_url_lines()
     test_producer_executes_evolink_gate()
+    test_handoff_mentions_on_gate_release()
     print("OK")

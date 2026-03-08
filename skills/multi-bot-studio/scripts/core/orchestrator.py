@@ -101,7 +101,17 @@ def _advance_step(state: Dict, workflow: Dict) -> List[dict]:
 def _try_resume_from_block(state: Dict, workflow: Dict) -> List[dict]:
     if state.get("status") != "BLOCKED":
         return []
-    return _advance_step(state, workflow)
+    actions = _advance_step(state, workflow)
+    # 从阻塞恢复时，显式发布“下一棒接棒”动作，避免仅门禁更新导致体感不明确
+    if actions and actions[0].get("type") == "dispatch":
+        d = actions[0]
+        actions.insert(0, {
+            "type": "handoff",
+            "target_role": d.get("target_role"),
+            "meta": d.get("meta", {}),
+            "text": "门禁放行，下一棒请立即接棒执行。",
+        })
+    return actions
 
 
 def _handle_param_lock(state: Dict, workflow: Dict, event: Dict) -> List[dict]:
