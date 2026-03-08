@@ -10,6 +10,14 @@ ROLE_MAP = {
     "1479051272190693539": "editor",
 }
 
+ROLE_TEXT_HINTS = [
+    ("producer", re.compile(r"(【角色】\s*抓总|我是抓总|producer)", re.I)),
+    ("writer", re.compile(r"(【角色】\s*编剧|我是编剧|\bwriter\b)", re.I)),
+    ("director", re.compile(r"(【角色】\s*导演|我是导演|\bdirector\b)", re.I)),
+    ("vfx", re.compile(r"(【角色】\s*视效师|我是视效师|\bvfx\b)", re.I)),
+    ("editor", re.compile(r"(【角色】\s*剪辑师|我是剪辑师|\beditor\b)", re.I)),
+]
+
 ANCHOR_SELECT_RE = re.compile(r"(主锚点|选择|选定).*(01|02|03|1|2|3)", re.I)
 STORYBOARD_CONFIRM_RE = re.compile(r"(分镜|storyboard).*(确认|通过|ok|没问题)", re.I)
 PROMPT_APPROVE_RE = re.compile(r"(提示词包|prompt\s*pack|prompt).*(通过|确认|approved|放行)", re.I)
@@ -29,10 +37,18 @@ def infer_role(sender_id: str) -> str | None:
     return ROLE_MAP.get(str(sender_id))
 
 
+def infer_role_from_text(text: str) -> str | None:
+    t = text or ""
+    for role, pat in ROLE_TEXT_HINTS:
+        if pat.search(t):
+            return role
+    return None
+
+
 def message_to_event(message: Dict) -> Dict:
     sender_id = str(message.get("sender_id") or "")
-    role = infer_role(sender_id)
     text = str(message.get("text") or message.get("message") or "")
+    role = infer_role(sender_id) or infer_role_from_text(text)
     ts = int(message.get("ts") or message.get("timestamp") or 0)
 
     event = {

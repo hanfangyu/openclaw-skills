@@ -351,6 +351,32 @@ def test_editor_dispatch_includes_material_lock():
     assert "t_bgm_01" in out
 
 
+def test_role_infer_from_text_when_sender_unknown():
+    run_id = "test-v14-015"
+    run(["python", str(CLI), "start", "--workflow", "marketing_video", "--run-id", run_id])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "p1",
+        "type": "lock_params",
+        "ts": 1700008000,
+        "payload": {
+            "topic": "品牌形象",
+            "model_preset": "default_last_verified",
+            "aspect_ratio": "16:9",
+            "reference_image_provided": False,
+            "duration_sec": 30,
+        }
+    }, ensure_ascii=False)])
+
+    out = run(["python", str(CLI), "ingest-discord", "--run-id", run_id, "--message-json", json.dumps({
+        "message_id": "m-role-guess-1",
+        "sender_id": "999999999999999999",
+        "text": "【角色】编剧 ACK + 在线",
+        "timestamp": 1700008001
+    }, ensure_ascii=False)])
+    assert '"state": "ACK_WAIT"' in out
+    assert "ACK进度 1/4" in out
+
+
 def test_editor_delivery_requires_discord_zip_and_paths():
     run_id = "test-v14-014"
     run(["python", str(CLI), "start", "--workflow", "marketing_video", "--run-id", run_id])
@@ -495,5 +521,6 @@ if __name__ == "__main__":
     test_handoff_mentions_on_gate_release()
     test_storyboard_confirm_auto_event()
     test_editor_dispatch_includes_material_lock()
+    test_role_infer_from_text_when_sender_unknown()
     test_editor_delivery_requires_discord_zip_and_paths()
     print("OK")
