@@ -136,6 +136,13 @@ def cmd_start(base: Path, workflow: str, run_id: str, route_channel: str | None 
     print(json.dumps({"ok": True, "run_id": run_id, "status": state["status"], "routing": routing}, ensure_ascii=False))
 
 
+def _learn_runtime_role_mention(state: dict, event: dict) -> None:
+    role = str(event.get("role") or "")
+    sender_id = str(event.get("sender_id") or "")
+    if role in ("writer", "director", "vfx", "editor", "producer") and sender_id.isdigit():
+        state.setdefault("runtime_role_mentions", {})[role] = f"<@{sender_id}>"
+
+
 def _apply(base: Path, run_id: str, raw_event: dict):
     rd = ensure_run(base, run_id)
     state = load_json(rd / "state.json", {})
@@ -154,8 +161,15 @@ def _apply(base: Path, run_id: str, raw_event: dict):
 
     append_event(rd / "events.jsonl", {"event_id": eid, **event})
     state, actions = apply_event(state, wf, event)
+    _learn_runtime_role_mention(state, event)
     mark_processed(state, eid)
     save_json(rd / "state.json", state)
+
+    runtime_mentions = state.get("runtime_role_mentions") or {}
+    if runtime_mentions:
+        merged = dict(wf.get("role_mentions") or {})
+        merged.update(runtime_mentions)
+        wf["role_mentions"] = merged
 
     rendered = render_actions(actions, wf)
     outbound = to_outbound_messages(run_id, rendered)

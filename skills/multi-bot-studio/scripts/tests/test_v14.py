@@ -351,6 +351,43 @@ def test_editor_dispatch_includes_material_lock():
     assert "t_bgm_01" in out
 
 
+def test_runtime_role_mention_learning_from_sender_id():
+    run_id = "test-v14-016"
+    run(["python", str(CLI), "start", "--workflow", "marketing_video", "--run-id", run_id])
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "p1",
+        "type": "lock_params",
+        "ts": 1700009000,
+        "payload": {
+            "topic": "品牌形象",
+            "model_preset": "default_last_verified",
+            "aspect_ratio": "16:9",
+            "reference_image_provided": False,
+            "duration_sec": 30,
+        }
+    }, ensure_ascii=False)])
+
+    # unknown sender id but explicit role should be learned and used in next mention rendering
+    run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "learn-writer",
+        "type": "role_ack",
+        "role": "writer",
+        "sender_id": "999888777666555444",
+        "ts": 1700009001
+    }, ensure_ascii=False)])
+
+    out = run(["python", str(CLI), "step", "--run-id", run_id, "--event-json", json.dumps({
+        "event_id": "manual-dispatch-writer",
+        "type": "anchor_selected",
+        "payload": {"pass": True, "anchor_id": "01"},
+        "ts": 1700009002
+    }, ensure_ascii=False)])
+
+    # we only require learning written into state; mention rendering path is covered by dispatch outputs in other tests
+    status = run(["python", str(CLI), "status", "--run-id", run_id])
+    assert "999888777666555444" in status
+
+
 def test_role_infer_from_text_when_sender_unknown():
     run_id = "test-v14-015"
     run(["python", str(CLI), "start", "--workflow", "marketing_video", "--run-id", run_id])
@@ -521,6 +558,7 @@ if __name__ == "__main__":
     test_handoff_mentions_on_gate_release()
     test_storyboard_confirm_auto_event()
     test_editor_dispatch_includes_material_lock()
+    test_runtime_role_mention_learning_from_sender_id()
     test_role_infer_from_text_when_sender_unknown()
     test_editor_delivery_requires_discord_zip_and_paths()
     print("OK")
