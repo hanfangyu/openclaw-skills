@@ -1,78 +1,60 @@
----
-name: omlx-memory-setup
-description: Configure OpenClaw memory search with oMLX local embedding models on Apple Silicon. Use when setting up memory search, configuring embedding providers, installing oMLX, or troubleshooting memory search issues. Triggers on phrases like "memory search setup", "local embedding", "oMLX configuration", "memory plugin install".
----
+# omlx-memory-setup
 
-# oMLX Memory Search Setup
+本地记忆嵌入插件安装指南，使用 oMLX + Qwen3-Embedding 实现完全本地的语义记忆搜索。
 
-Configure OpenClaw memory search with local embedding models via oMLX on Apple Silicon Macs.
+## 描述
 
-## Quick Start
+帮助用户在 Apple Silicon Mac 上配置 OpenClaw 的本地记忆嵌入系统，实现：
+- 完全本地的嵌入推理（无需 API 调用）
+- 支持 Qwen3-Embedding-4B 等高质量中文嵌入模型
+- 混合搜索（BM25 + 向量）
+- MMR 重排序 + 时间衰减
+- 可选的查询扩展功能
 
-1. Install oMLX: `brew install --cask omlx`
-2. Download embedding model via oMLX Web UI (http://localhost:8000/admin)
-3. Configure OpenClaw to use oMLX embedding
-4. Enable hybrid search with MMR ranking
+## 触发词
 
-## Prerequisites
+- "配置记忆嵌入"、"本地嵌入"
+- "oMLX 安装"、"oMLX 配置"
+- "记忆搜索设置"、"记忆插件安装"
+- "Qwen 嵌入模型"
 
-- Apple Silicon Mac (M1/M2/M3/M4)
-- macOS 12.0 or later
-- 8GB+ RAM (16GB recommended for 4B models)
-- OpenClaw 2026.3.0+
+## 前置条件
 
-## Installation Steps
+- macOS (Apple Silicon)
+- 16GB+ 内存（推荐）
+- Homebrew
 
-### Step 1: Install oMLX
+## 安装步骤
+
+### 1. 安装 oMLX
 
 ```bash
-# Download from GitHub
-curl -L -o ~/Downloads/oMLX.dmg \
-  https://github.com/jundot/omlx/releases/latest/download/oMLX.dmg
+# 方式 A: Homebrew
+brew install jundot/omlx/omlx
 
-# Mount and install
-hdiutil attach ~/Downloads/oMLX.dmg
-cp -R /Volumes/oMLX/oMLX.app /Applications/
-hdiutil detach /Volumes/oMLX
-
-# Launch oMLX
-open -a oMLX
+# 方式 B: 手动下载 DMG
+# https://github.com/jundot/omlx/releases
 ```
 
-### Step 2: Configure oMLX
+### 2. 下载嵌入模型
 
-Edit `~/.omlx/settings.json`:
+通过 oMLX Web UI 或 API 下载模型：
 
-```json
-{
-  "host": "127.0.0.1",
-  "port": 8000,
-  "api_key": "your-api-key",
-  "model_dir": "~/.omlx/models",
-  "max_model_memory": "10GB",
-  "start_server_on_launch": true
-}
-```
+**推荐模型：**
+- `Qwen3-Embedding-4B` — 中文最佳，约 8GB 内存
+- `Qwen3-Embedding-0.6B` — 轻量版，约 1.5GB 内存
 
-### Step 3: Download Embedding Model
-
-Via oMLX Web UI (http://localhost:8000/admin):
-1. Login with your API key
-2. Go to Models → Download
-3. Search for `Qwen3-Embedding-4B` (recommended for Chinese)
-4. Click Download
-
-Or via CLI:
 ```bash
-# Using huggingface-cli
-pip install huggingface_hub
-huggingface-cli download Qwen/Qwen3-Embedding-4B \
-  --local-dir ~/.omlx/models/Qwen3-Embedding-4B
+# API 方式下载
+curl -X POST "http://localhost:8000/admin/download" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "Qwen3-Embedding-4B"}'
 ```
 
-### Step 4: Configure OpenClaw
+### 3. 配置 OpenClaw
 
-Edit OpenClaw config (usually `~/.openclaw/gateway.json5`):
+编辑 `~/.openclaw/openclaw.json`：
 
 ```json5
 agents: {
@@ -82,7 +64,7 @@ agents: {
       model: "Qwen3-Embedding-4B",
       remote: {
         baseUrl: "http://localhost:8000/v1",
-        apiKey: "your-omlx-api-key"
+        apiKey: "YOUR_OMLX_API_KEY"
       },
       query: {
         hybrid: {
@@ -98,64 +80,74 @@ agents: {
 }
 ```
 
-Then restart Gateway:
+### 4. 重启 Gateway
+
 ```bash
 openclaw gateway restart
 ```
 
-## Model Selection Guide
-
-| Model | Size | Memory | Chinese Support | Recommended For |
-|-------|------|--------|-----------------|-----------------|
-| Qwen3-Embedding-4B | 4B | ~8GB | ⭐⭐⭐⭐⭐ | Chinese-heavy use |
-| Qwen3-Embedding-0.6B | 0.6B | ~1.5GB | ⭐⭐⭐⭐ | Memory-constrained |
-| BGE-M3 | 1.2B | ~2.2GB | ⭐⭐⭐⭐⭐ | Multilingual |
-
-## Query Expansion (Optional)
-
-For better search recall, use the included query expansion script:
+### 5. 验证安装
 
 ```bash
-# Expand query using local LLM
-python3 scripts/query_expansion.py "网络问题"
-# Output: ["网络问题", "网速慢", "断网", "网络延迟高", ...]
-```
-
-Requires a chat model (e.g., Qwen3.5-4B) installed in oMLX.
-
-## Troubleshooting
-
-### oMLX service not starting
-
-```bash
-# Check if port is in use
-lsof -i :8000
-
-# Check oMLX logs
-log show --predicate 'process == "oMLX"' --last 5m
-
-# Restart oMLX
-killall oMLX && open -a oMLX
-```
-
-### Model loading failed (memory)
-
-If you see "Not enough memory to load model":
-1. Increase `max_model_memory` in `~/.omlx/settings.json`
-2. Or use a smaller model (Qwen3-Embedding-0.6B)
-3. Close other memory-intensive apps
-
-### Embedding API errors
-
-```bash
-# Test oMLX embedding endpoint
-curl http://localhost:8000/v1/embeddings \
-  -H "Authorization: Bearer your-api-key" \
+# 测试嵌入
+curl -X POST "http://localhost:8000/v1/embeddings" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"input": "test", "model": "Qwen3-Embedding-4B"}'
+  -d '{"model": "Qwen3-Embedding-4B", "input": "测试文本"}'
 ```
 
-## Files
+## 可选：查询扩展
 
-- `scripts/query_expansion.py` - Query expansion using local LLM
-- `references/config-examples.md` - Additional configuration examples
+如果需要查询扩展功能，需要额外下载聊天模型：
+
+```bash
+# 下载轻量聊天模型
+curl -X POST "http://localhost:8000/admin/download" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "Qwen3.5-4B-4bit"}'
+```
+
+使用查询扩展脚本：
+
+```bash
+python3 references/query_expansion.py "网络问题"
+# 输出: ["网络问题", "网速慢", "断网", "网络延迟高", ...]
+```
+
+## 常见问题
+
+### 内存不足
+
+如果遇到 "Insufficient memory" 错误：
+
+1. 打开 oMLX 应用 → Settings
+2. 调整 "Max Model Memory" 到 10-12GB
+3. 重启 oMLX 服务
+
+### 服务未启动
+
+```bash
+# 检查服务状态
+curl http://localhost:8000/health
+
+# 通过应用启动
+open -a oMLX
+```
+
+### 模型加载失败
+
+确保模型格式兼容：
+- MLX 格式模型优先
+- PyTorch 格式需要转换
+
+## 资源文件
+
+- `references/config-examples.md` — 完整配置示例
+- `references/query_expansion.py` — 查询扩展脚本
+
+## 相关链接
+
+- [oMLX GitHub](https://github.com/jundot/omlx)
+- [OpenClaw 记忆文档](https://docs.openclaw.ai/features/memory)
+- [Qwen3 Embedding](https://huggingface.co/Qwen/Qwen3-Embedding-4B)

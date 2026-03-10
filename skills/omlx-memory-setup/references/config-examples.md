@@ -1,163 +1,167 @@
-# Configuration Examples
+# oMLX 记忆配置示例
 
-## Basic oMLX Setup
-
-Minimal configuration for oMLX with embedding model:
+## 完整 OpenClaw 配置
 
 ```json5
-// ~/.omlx/settings.json
+// ~/.openclaw/openclaw.json
 {
-  "host": "127.0.0.1",
-  "port": 8000,
-  "api_key": "local-key",
-  "model_dir": "~/.omlx/models",
-  "max_model_memory": "8GB",
-  "start_server_on_launch": true
-}
-```
-
-## OpenClaw Memory Search Configurations
-
-### Basic Hybrid Search
-
-```json5
-agents: {
-  defaults: {
-    memorySearch: {
-      provider: "openai",
-      model: "Qwen3-Embedding-4B",
-      remote: {
-        baseUrl: "http://localhost:8000/v1",
-        apiKey: "local-key"
-      }
-    }
-  }
-}
-```
-
-### Full Ranking Configuration
-
-```json5
-agents: {
-  defaults: {
-    memorySearch: {
-      provider: "openai",
-      model: "Qwen3-Embedding-4B",
-      remote: {
-        baseUrl: "http://localhost:8000/v1",
-        apiKey: "local-key"
-      },
-      query: {
-        hybrid: {
-          enabled: true,
-          vectorWeight: 0.7,
-          textWeight: 0.3,
-          mmr: {
+  agents: {
+    defaults: {
+      memorySearch: {
+        // 嵌入提供商配置
+        provider: "openai",
+        model: "Qwen3-Embedding-4B",
+        remote: {
+          baseUrl: "http://localhost:8000/v1",
+          apiKey: "YOUR_OMLX_API_KEY"  // 替换为你的 oMLX API key
+        },
+        
+        // 搜索配置
+        query: {
+          maxResults: 10,
+          minScore: 0.3,
+          hybrid: {
             enabled: true,
-            lambda: 0.7
-          },
-          temporalDecay: {
-            enabled: true,
-            halfLifeDays: 30
+            vectorWeight: 0.7,
+            textWeight: 0.3,
+            mmr: {
+              enabled: true,
+              lambda: 0.7  // 0-1, 越大越精确，越小越多样
+            },
+            temporalDecay: {
+              enabled: true,
+              halfLifeDays: 30  // 半衰期，天数
+            }
           }
         }
       }
     }
+  },
+  
+  // Gateway 配置（可选）
+  gateway: {
+    port: 3000
   }
 }
 ```
 
-### Memory-Constrained Setup (8GB RAM)
+## oMLX 配置
 
-For Macs with limited memory:
+oMLX 配置文件位于 `~/.omlx/config.json`：
+
+```json
+{
+  "api_key": "YOUR_API_KEY",
+  "port": 8000,
+  "model_path": "~/.omlx/models",
+  "max_model_memory": "10GB",
+  "start_server_on_launch": true
+}
+```
+
+### 内存配置
+
+根据你的 Mac 内存调整：
+
+| 系统内存 | max_model_memory | 推荐模型 |
+|----------|-----------------|----------|
+| 8GB | 5GB | Qwen3-Embedding-0.6B |
+| 16GB | 10GB | Qwen3-Embedding-4B |
+| 32GB+ | 20GB | 可同时运行嵌入+聊天模型 |
+
+## QMD 后端配置（备选）
+
+如果偏好完全离线的 QMD 后端：
 
 ```json5
-// Use smaller embedding model
-agents: {
-  defaults: {
-    memorySearch: {
-      provider: "openai",
-      model: "Qwen3-Embedding-0.6B",
-      remote: {
-        baseUrl: "http://localhost:8000/v1",
-        apiKey: "local-key"
-      }
-    }
+memory: {
+  backend: "qmd",
+  citations: "auto",
+  qmd: {
+    includeDefaultMemory: true,
+    update: { interval: "5m" },
+    paths: [
+      { name: "notes", path: "~/notes", pattern: "**/*.md" }
+    ]
   }
 }
+```
 
-// oMLX settings
-{
-  "max_model_memory": "4GB"
+注意：QMD 后端使用自带的嵌入模型，不会使用 oMLX 配置的模型。
+
+## 查询扩展示例
+
+### 环境变量配置
+
+```bash
+# 在 ~/.zshrc 或 ~/.bashrc 中添加
+export OMLX_API_KEY="YOUR_OMLX_API_KEY"
+export OMLX_BASE_URL="http://localhost:8000/v1"
+```
+
+### 脚本调用
+
+```bash
+# 基本用法
+python3 ~/.openclaw/workspace/scripts/query_expansion.py "网络问题"
+
+# 输出示例
+# ["网络问题", "网速慢", "断网", "网络延迟高", "Wi-Fi 连接失败", "路由器故障"]
+
+# 集成到其他脚本
+EXPANDED=$(python3 ~/.openclaw/workspace/scripts/query_expansion.py "查询词")
+echo "$EXPANDED" | jq -r '.[]'
+```
+
+### API 集成
+
+```python
+import requests
+import json
+
+def expand_query(query: str, api_key: str) -> list[str]:
+    """调用 oMLX 扩展查询词"""
+    response = requests.post(
+        "http://localhost:8000/v1/chat/completions",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={
+            "model": "Qwen3.5-4B-4bit",
+            "messages": [
+                {"role": "user", "content": f"扩展查询词: {query}"}
+            ],
+            "temperature": 0.3,
+            "max_tokens": 100
+        }
+    )
+    # 解析返回的扩展词
+    return json.loads(response.json()["choices"][0]["message"]["content"])
+```
+
+## 故障排除配置
+
+### 启用详细日志
+
+```json5
+logging: {
+  level: "debug",
+  memory: true
 }
 ```
 
-## Query Expansion Setup
-
-### Install Chat Model for Query Expansion
+### 测试嵌入连接
 
 ```bash
-# Via oMLX Web UI: download Qwen3.5-4B-4bit
-# Or via CLI:
-huggingface-cli download mlx-community/Qwen3.5-4B-4bit-DWQ \
-  --local-dir ~/.omlx/models/Qwen3.5-4B-4bit
-```
-
-### Use Query Expansion Script
-
-```bash
-# Basic usage
-python3 scripts/query_expansion.py "搜索关键词"
-
-# Example output for "网络问题":
-# ["网络问题", "网速慢", "断网", "网络延迟高", "Wi-Fi 连接失败", "路由器故障"]
-```
-
-## Memory Search API Test
-
-```bash
-# Test embedding endpoint
-curl http://localhost:8000/v1/embeddings \
-  -H "Authorization: Bearer local-key" \
+# 测试 oMLX 嵌入接口
+curl -v -X POST "http://localhost:8000/v1/embeddings" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "input": "测试文本",
-    "model": "Qwen3-Embedding-4B"
-  }'
-
-# Expected response:
-# {
-#   "object": "list",
-#   "data": [{
-#     "object": "embedding",
-#     "embedding": [0.123, -0.456, ...],
-#     "index": 0
-#   }],
-#   "model": "Qwen3-Embedding-4B",
-#   "usage": { "prompt_tokens": 4, "total_tokens": 4 }
-# }
+  -d '{"model": "Qwen3-Embedding-4B", "input": "测试"}'
 ```
 
-## Model Comparison
+### 重置记忆索引
 
-| Model | Parameters | Disk Size | RAM Usage | Max Length | Chinese Score |
-|-------|------------|-----------|-----------|------------|---------------|
-| Qwen3-Embedding-4B | 4B | ~8GB | ~8.5GB | 32768 | 95% |
-| Qwen3-Embedding-0.6B | 0.6B | ~1.2GB | ~1.5GB | 32768 | 85% |
-| BGE-M3 | 1.2B | ~2.2GB | ~2.5GB | 8192 | 90% |
-| bge-small-en | 0.03B | ~0.1GB | ~0.5GB | 512 | 30% |
-
-## Memory Estimation
-
-For 16GB Mac:
-- System reserved: ~3GB
-- oMLX overhead: ~1GB
-- Qwen3-Embedding-4B: ~8GB
-- Qwen3.5-4B-4bit (query expansion): ~2.5GB
-- **Total: ~14.5GB** ✓ Fits
-
-For 8GB Mac:
-- System reserved: ~2GB
-- oMLX overhead: ~0.5GB
-- Qwen3-Embedding-0.6B: ~1.5GB
-- **Total: ~4GB** ✓ Fits with room
+```bash
+# 删除记忆数据库，重建索引
+rm ~/.openclaw/data/memory.db
+openclaw gateway restart
+```
