@@ -1,3 +1,23 @@
+---
+name: omlx-memory-setup
+description: 本地记忆嵌入插件安装，使用 oMLX + Qwen3-Embedding 实现完全本地的语义记忆搜索
+author: hanfangyu
+version: 1.0.0
+tags: [memory, embedding, omlx, local, qwen]
+triggers:
+  - "配置记忆嵌入"
+  - "本地嵌入"
+  - "oMLX 安装"
+  - "oMLX 配置"
+  - "记忆搜索设置"
+  - "记忆插件安装"
+  - "Qwen 嵌入模型"
+requirements:
+  - macOS (Apple Silicon)
+  - 16GB+ 内存（推荐）
+  - Homebrew
+---
+
 # omlx-memory-setup
 
 本地记忆嵌入插件安装指南，使用 oMLX + Qwen3-Embedding 实现完全本地的语义记忆搜索。
